@@ -1,39 +1,106 @@
 /* src/components/Header/Header.module.css */
+
+/* ---------------------- MOBILE FIRST ---------------------- */
 .header {
-    background-color: #fff;
-    border-bottom: 1px solid #ddd;
-    padding: 1rem 2rem;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  padding: 0.75rem 1rem;
+}
+
+/* Make sure nav is positioned, so .links (absolute) will be relative to this */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;       /* <— added */
+}
+
+/* Logo */
+.logo {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #333;
+  text-decoration: none;
+}
+
+/* Hamburger button */
+.hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 1.5rem;
+  width: 1.75rem;
+}
+
+.bar {
+  display: block;
+  width: 100%;
+  height: 0.2rem;
+  background-color: #333;
+  border-radius: 1px;
+}
+
+/* Links container: hidden by default on mobile */
+.links {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border-top: 1px solid #ddd;
+  display: none;                /* hidden initially */
+  flex-direction: column;
+  padding: 1rem 0;
+  z-index: 10;
+}
+
+/* WHEN menuOpen === true, force the menu to show up */
+.linksOpen {
+  display: flex !important;     /* override any other display */
+  /* background-color: rgba(0,0,0,0.05);  faint gray so we can see it */
+}
+
+/* Individual link items */
+.linkItem {
+  padding: 0.5rem 1.5rem;
+  text-decoration: none;
+  color: #333;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.linkItem:hover {
+  background-color: #f0f0f0;
+}
+
+.logoutBtn {
+  margin: 0;
+}
+
+/* ---------------------- DESKTOP OVERRIDE ---------------------- */
+@media (min-width: 640px) {
+  .hamburger {
+    display: none;              /* hide hamburger on desktop */
   }
-  
-  .nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .logo {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #333;
-  }
-  
-  .links > a,
-  .links > button {
-    margin-left: 1.5rem;
-    text-decoration: none;
+
+  .links {
+    position: static;
+    display: flex !important;   /* always show inline on desktop */
+    flex-direction: row;
     background: none;
     border: none;
-    font: inherit;
-    cursor: pointer;
-    color: #333;
-  }
-  
-  .links > button:hover,
-  .links > a:hover {
-    color: #0066cc;
-  }
-  
-  .logoutBtn {
     padding: 0;
+    margin-left: auto;          /* push links to the right */
   }
-  
+
+  .linkItem {
+    padding: 0 1rem;
+  }
+}
