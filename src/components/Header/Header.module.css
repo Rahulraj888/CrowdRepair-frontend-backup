@@ -1,0 +1,39 @@
+/* src/components/Header/Header.module.css */
+.header {
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 1rem 2rem;
+  }
+  
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .links > a,
+  .links > button {
+    margin-left: 1.5rem;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    color: #333;
+  }
+  
+  .links > button:hover,
+  .links > a:hover {
+    color: #0066cc;
+  }
+  
+  .logoutBtn {
+    padding: 0;
+  }
+  
