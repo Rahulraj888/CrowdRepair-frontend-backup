@@ -1,31 +1,40 @@
 // src/pages/LoginPage/LoginPage.jsx
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import authService from '../../services/authService';
+import { AuthContext } from '../../context/AuthContext';
 import styles from './LoginPage.module.css';
-// Later, replace with a real authService
-// import authService from '../../services/authService';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [error, setError]       = useState('');
+  const navigate                = useNavigate();
+  const { setUser }             = useContext(AuthContext);  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      // Example stub: replace with authService.login(email, password)
-      if (email === 'user@example.com' && password === 'password') {
-        localStorage.setItem('token', 'fake-jwt-token');
-        // localStorage.setItem('isAdmin', 'false');
-        navigate('/dashboard');
-      } else {
-        setError('Invalid email or password');
-      }
+      const { token } = await authService.login(email, password);
+      localStorage.setItem('token', token);
+      console.log("logs for login page")
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+
+      navigate('/dashboard');
     } catch (err) {
-      setError('Something went wrong. Try again.');
+      let errorMessage = err.message || 'Login failed';
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (Array.isArray(data.errors) && data.errors[0]?.msg) {
+          errorMessage = data.errors[0].msg;
+        } else if (data.msg) {
+          errorMessage = data.msg;
+        } 
+      } 
+      setError(errorMessage)
     }
   };
 
@@ -33,13 +42,14 @@ export default function LoginPage() {
     <div className={styles.container}>
       <h2>Login to Mobile Appz</h2>
       {error && <p className={styles.error}>{error}</p>}
+
       <form onSubmit={handleSubmit} className={styles.form}>
         <label>
           Email:
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             required
           />
         </label>
@@ -49,13 +59,14 @@ export default function LoginPage() {
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             required
           />
         </label>
 
         <button type="submit">Login</button>
       </form>
+
       <p className={styles.link}>
         Don’t have an account? <Link to="/register">Sign up here</Link>
       </p>
