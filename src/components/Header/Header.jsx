@@ -1,36 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+// src/components/Header/Header.jsx
+import { useContext, useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 import styles from './Header.module.css';
 
 export default function Header() {
-  const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
   const location = useLocation();
-  const token = localStorage.getItem('token');
   const [menuOpen, setMenuOpen] = useState(false);
 
-  console.log(styles);
-  // Close menu when the route changes
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('isAdmin');
-    navigate('/login');
-  };
+  // Close menu on route change
+  useEffect(() => setMenuOpen(false), [location]);
 
   return (
     <header className={styles.header}>
       <nav className={styles.nav}>
-        <Link to="/" className={styles.logo}>
-          Mobile Appz
-        </Link>
+        <Link to="/" className={styles.logo}>Mobile Appz</Link>
 
-        {/* Hamburger button */}
         <button
           className={styles.hamburger}
-          onClick={() => setMenuOpen(prev => !prev)}
+          onClick={() => setMenuOpen(o => !o)}
           aria-label="Toggle menu"
         >
           <span className={styles.bar} />
@@ -38,21 +27,26 @@ export default function Header() {
           <span className={styles.bar} />
         </button>
 
-        {/* The links container: it should gain the `linksOpen` class when menuOpen===true */}
         <div className={`${styles.links} ${menuOpen ? styles.linksOpen : ''}`}>
-          {!token && (
+          {!user && (
             <>
               <Link to="/login" className={styles.linkItem}>Login</Link>
               <Link to="/register" className={styles.linkItem}>Sign Up</Link>
             </>
           )}
 
-          {token && (
+          {user && (
             <>
               <Link to="/dashboard" className={styles.linkItem}>Dashboard</Link>
               <Link to="/report" className={styles.linkItem}>New Report</Link>
               <Link to="/heatmap" className={styles.linkItem}>Heatmap</Link>
-              <button onClick={handleLogout} className={`${styles.linkItem} ${styles.logoutBtn}`}>
+              {user.role === 'admin' && (
+                <Link to="/admin" className={styles.linkItem}>Admin Panel</Link>
+              )}
+              <button
+                onClick={logout}
+                className={`${styles.linkItem} ${styles.logoutBtn}`}
+              >
                 Logout
               </button>
             </>

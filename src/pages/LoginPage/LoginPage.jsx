@@ -1,38 +1,73 @@
 // src/pages/LoginPage/LoginPage.jsx
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import authService from '../../services/authService';
+import { AuthContext } from '../../context/AuthContext';
 import styles from './LoginPage.module.css';
-// Later, replace with a real authService
-// import authService from '../../services/authService';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showResend, setShowResend] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
+  const [resendErr, setResendErr] = useState('');
   const navigate = useNavigate();
+  const { setUser } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setShowResend(false);
 
     try {
-      // Example stub: replace with authService.login(email, password)
-      if (email === 'user@example.com' && password === 'password') {
-        localStorage.setItem('token', 'fake-jwt-token');
-        // localStorage.setItem('isAdmin', 'false');
-        navigate('/dashboard');
-      } else {
-        setError('Invalid email or password');
-      }
+      const { token } = await authService.login(email, password);
+      localStorage.setItem('token', token);
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+      navigate('/dashboard');
     } catch (err) {
-      setError('Something went wrong. Try again.');
+      const resp = err.response?.data;
+      const msg =
+        resp?.errors?.[0]?.msg || resp?.msg || err.message || 'Login failed';
+      setError(msg);
+      if (msg.toLowerCase().includes('verify')) {
+        setShowResend(true);
+      }
+    }
+  };
+
+  const handleResend = async () => {
+    setResendMsg('');
+    setResendErr('');
+    try {
+      const { msg } = await authService.resendVerification(email);
+      setResendMsg(msg);
+    } catch (err) {
+      const resp = err.response?.data;
+      const msg =
+        resp?.errors?.[0]?.msg || resp?.msg || err.message || 'Resend failed';
+      setResendErr(msg);
     }
   };
 
   return (
     <div className={styles.container}>
       <h2>Login to Mobile Appz</h2>
+
       {error && <p className={styles.error}>{error}</p>}
+
+      {showResend && (
+        <div className={styles.resendContainer}>
+          <p>Didn't receive a verification email?</p>
+          <button onClick={handleResend} className={styles.resendBtn}>
+            Resend Verification Email
+          </button>
+          {resendMsg && <p className={styles.success}>{resendMsg}</p>}
+          {resendErr && <p className={styles.error}>{resendErr}</p>}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className={styles.form}>
         <label>
           Email:
@@ -56,6 +91,7 @@ export default function LoginPage() {
 
         <button type="submit">Login</button>
       </form>
+
       <p className={styles.link}>
         Don’t have an account? <Link to="/register">Sign up here</Link>
       </p>
