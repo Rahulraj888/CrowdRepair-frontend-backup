@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import authService from '../../services/authService';
 import { AuthContext } from '../../context/AuthContext';
 import styles from './LoginPage.module.css';
-import jwt_decode from 'jwt-decode';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,8 +22,6 @@ export default function LoginPage() {
     try {
       const { token } = await authService.login(email, password);
       localStorage.setItem('token', token);
-      const decoded = jwt_decode(token);
-      setUser(decoded.user);
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
       navigate('/dashboard');
