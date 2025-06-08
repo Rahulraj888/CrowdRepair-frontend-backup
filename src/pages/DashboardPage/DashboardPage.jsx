@@ -1,5 +1,5 @@
 export default function DashboardPage() {
     return (<>
-    Dashboard Page
+    Welcome to Mobile Appz Dashboard
     </>)
 }

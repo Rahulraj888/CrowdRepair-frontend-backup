@@ -1,4 +1,3 @@
-// src/components/ProtectedRoute.jsx
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import authService from '../services/authService';
@@ -10,7 +9,6 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
   useEffect(() => {
     (async () => {
       try {
-        console.log("log from protected route")
         // Fetch current user from API (verifies token)
         const user = await authService.getCurrentUser();
 

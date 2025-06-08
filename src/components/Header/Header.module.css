@@ -58,9 +58,8 @@
   z-index: 10;
 }
 
-/* WHEN menuOpen === true, force the menu to show up */
 .linksOpen {
-  display: flex !important;     /* override any other display */
+  display: flex !important;    
   /* background-color: rgba(0,0,0,0.05);  faint gray so we can see it */
 }
 

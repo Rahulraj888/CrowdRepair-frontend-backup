@@ -1,4 +1,3 @@
-// src/services/api.js
 import axios from 'axios';
 
 // Create an axios instance with a base URL pointing to your backend

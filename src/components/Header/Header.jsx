@@ -1,4 +1,3 @@
-// src/components/Header/Header.jsx
 import { useContext, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
@@ -38,8 +37,10 @@ export default function Header() {
           {user && (
             <>
               <Link to="/dashboard" className={styles.linkItem}>Dashboard</Link>
-              <Link to="/report" className={styles.linkItem}>New Report</Link>
               <Link to="/heatmap" className={styles.linkItem}>Heatmap</Link>
+              {user.role !== 'admin' && (
+                <Link to="/report" className={styles.linkItem}>New Report</Link>
+              )}
               {user.role === 'admin' && (
                 <Link to="/admin" className={styles.linkItem}>Admin Panel</Link>
               )}

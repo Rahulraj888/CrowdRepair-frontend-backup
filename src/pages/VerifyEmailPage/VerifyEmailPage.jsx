@@ -1,4 +1,3 @@
-// src/pages/VerifyEmailPage/VerifyEmailPage.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import authService from '../../services/authService';
@@ -7,7 +6,7 @@ import styles from './VerifyEmailPage.module.css';
 export default function VerifyEmailPage() {
   const [status, setStatus]     = useState('loading');  // 'loading' | 'success' | 'error'
   const [message, setMessage]   = useState('');
-  const [email, setEmail]       = useState('');         // for resend form
+  const [email, setEmail]       = useState('');
   const [resendMsg, setResend]  = useState('');
   const [resendErr, setResendErr] = useState('');
   const calledOnce = useRef(false);

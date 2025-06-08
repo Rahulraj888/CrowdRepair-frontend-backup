@@ -1,4 +1,3 @@
-// src/pages/LoginPage/LoginPage.jsx
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import authService from '../../services/authService';
@@ -27,6 +26,7 @@ export default function LoginPage() {
       setUser(currentUser);
       navigate('/dashboard');
     } catch (err) {
+      //Extract error messages from backend response
       const resp = err.response?.data;
       const msg =
         resp?.errors?.[0]?.msg || resp?.msg || err.message || 'Login failed';

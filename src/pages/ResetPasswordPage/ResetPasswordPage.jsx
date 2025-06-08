@@ -1,4 +1,3 @@
-// ====== src/pages/ResetPasswordPage/ResetPasswordPage.jsx ======
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import authService from '../../services/authService';
