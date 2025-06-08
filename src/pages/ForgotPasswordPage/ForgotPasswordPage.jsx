@@ -1,4 +1,3 @@
-// ====== src/pages/ForgotPasswordPage/ForgotPasswordPage.jsx ======
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import authService from '../../services/authService';
@@ -15,7 +14,7 @@ export default function ForgotPasswordPage() {
     setMessage('');
     try {
       await authService.forgotPassword(email);
-      setMessage('Password reset email sent. Check your inbox.');
+      setMessage('Password reset email sent. Please Check your inbox.');
     } catch (err) {
       setError(err.message || 'Failed to send reset email');
     }

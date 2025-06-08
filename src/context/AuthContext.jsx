@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import { createContext, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import authService from '../services/authService';
@@ -10,6 +9,7 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  //TODO: check the verification flow and remove the public api check
   useEffect(() => {
     // List of public routes where we should NOT call /me
     const publicPaths = [

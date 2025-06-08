@@ -1,4 +1,3 @@
-// src/components/Header/Header.jsx
 import { useContext, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
