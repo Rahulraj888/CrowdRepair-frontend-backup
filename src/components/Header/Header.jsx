@@ -1,59 +1,54 @@
-import { useContext, useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import styles from './Header.module.css';
+// src/components/Header.js
+import React from 'react';
+import { Link } from 'react-router-dom';
+import logo from '../../assets/logo.jpg';
+ // Replace with your actual logo path
 
-export default function Header() {
-  const { user, logout } = useContext(AuthContext);
-  const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  // Close menu on route change
-  useEffect(() => setMenuOpen(false), [location]);
-
+function Header() {
   return (
-    <header className={styles.header}>
-      <nav className={styles.nav}>
-        <Link to="/" className={styles.logo}>Mobile Appz</Link>
+    <header className="shadow-sm">
+      <nav className="navbar navbar-expand-lg navbar-light bg-white px-4">
+        <div className="container-fluid">
+          {/* Logo */}
+          <Link className="navbar-brand d-flex align-items-center" to="/">
+            <img src={logo} alt="Civic Reporter" style={{ height: '30px', marginRight: '10px' }} />
+            <span className="fw-bold text-primary">Civic Reporter</span>
+          </Link>
 
-        <button
-          className={styles.hamburger}
-          onClick={() => setMenuOpen(o => !o)}
-          aria-label="Toggle menu"
-        >
-          <span className={styles.bar} />
-          <span className={styles.bar} />
-          <span className={styles.bar} />
-        </button>
+          {/* Toggler for mobile */}
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
 
-        <div className={`${styles.links} ${menuOpen ? styles.linksOpen : ''}`}>
-          {!user && (
-            <>
-              <Link to="/login" className={styles.linkItem}>Login</Link>
-              <Link to="/register" className={styles.linkItem}>Sign Up</Link>
-            </>
-          )}
-
-          {user && (
-            <>
-              <Link to="/dashboard" className={styles.linkItem}>Dashboard</Link>
-              <Link to="/heatmap" className={styles.linkItem}>Heatmap</Link>
-              {user.role !== 'admin' && (
-                <Link to="/report" className={styles.linkItem}>New Report</Link>
-              )}
-              {user.role === 'admin' && (
-                <Link to="/admin" className={styles.linkItem}>Admin Panel</Link>
-              )}
-              <button
-                onClick={logout}
-                className={`${styles.linkItem} ${styles.logoutBtn}`}
-              >
-                Logout
-              </button>
-            </>
-          )}
+          {/* Nav links */}
+          <div className="collapse navbar-collapse" id="navbarNav">
+            <ul className="navbar-nav ms-auto align-items-center">
+              <li className="nav-item">
+                <Link className="nav-link" to="/">Home</Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/features">Features</Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/about">About Us</Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/feedback">Feedback</Link>
+              </li>
+              <li className="nav-item ms-3">
+                <Link className="btn btn-primary px-4" to="/register">Sign Up</Link>
+              </li>
+            </ul>
+          </div>
         </div>
       </nav>
     </header>
   );
 }
+
+export default Header;
