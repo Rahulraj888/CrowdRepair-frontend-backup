@@ -1,103 +1,189 @@
-import { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import authService from '../../services/authService';
-import { AuthContext } from '../../context/AuthContext';
-import styles from './LoginPage.module.css';
+import { useState, useContext } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import authService from "../../services/authService";
+import { AuthContext } from "../../context/AuthContext";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Alert,
+} from "react-bootstrap";
+import styles from "./LoginPage.module.css";
+import loginImage from "../../assets/login.jpg";
+import facebook from "../../assets/facebook.jpg";
+
+import Google from "../../assets/google.jpg";
+import Cloud from "../../assets/cloud.jpg";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [showResend, setShowResend] = useState(false);
-  const [resendMsg, setResendMsg] = useState('');
-  const [resendErr, setResendErr] = useState('');
+  const [resendMsg, setResendMsg] = useState("");
+  const [resendErr, setResendErr] = useState("");
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setShowResend(false);
 
     try {
       const { token } = await authService.login(email, password);
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
-      //Extract error messages from backend response
       const resp = err.response?.data;
       const msg =
-        resp?.errors?.[0]?.msg || resp?.msg || err.message || 'Login failed';
+        resp?.errors?.[0]?.msg || resp?.msg || err.message || "Login failed";
       setError(msg);
-      if (msg.toLowerCase().includes('verify')) {
+      if (msg.toLowerCase().includes("verify")) {
         setShowResend(true);
       }
     }
   };
 
   const handleResend = async () => {
-    setResendMsg('');
-    setResendErr('');
+    setResendMsg("");
+    setResendErr("");
     try {
       const { msg } = await authService.resendVerification(email);
       setResendMsg(msg);
     } catch (err) {
       const resp = err.response?.data;
       const msg =
-        resp?.errors?.[0]?.msg || resp?.msg || err.message || 'Resend failed';
+        resp?.errors?.[0]?.msg || resp?.msg || err.message || "Resend failed";
       setResendErr(msg);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <h2>Login to Mobile Appz</h2>
+  <Container
+  fluid
+  className="min-vh-100 d-flex align-items-center justify-content-center bg-light px-2"
+>
+  <Card className="shadow w-100" style={{ maxWidth: "900px" }}>
+    <Row className="g-0 flex-column flex-md-row">
+      {/* Image on top for mobile, left on desktop */}
+      <Col xs={12} md={6} className="p-0">
+        <img
+          src={loginImage}
+          alt="Login Illustration"
+          className="img-fluid w-100"
+          style={{
+            height: "100%",
+            objectFit: "cover",
+            borderTopLeftRadius: "8px",
+            borderTopRightRadius: "8px",
+            borderBottomLeftRadius: "0",
+            borderBottomRightRadius: "0",
+            minHeight: "250px",
+          }}
+        />
+      </Col>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {/* Form section */}
+      <Col
+        xs={12}
+        md={6}
+        className="d-flex align-items-center justify-content-center p-4"
+      >
+        <div className="w-100" style={{ maxWidth: "350px" }}>
+          <div className="text-center mb-3">
+            <img src={Cloud} alt="Cloud Icon" width="50" className="mb-2" />
+            <h3 className="fw-bold">Welcome Back</h3>
+            <p className="text-muted">
+              Log in to your Civic Reporter account.
+            </p>
+          </div>
 
-      {showResend && (
-        <div className={styles.resendContainer}>
-          <p>Didn't receive a verification email?</p>
-          <button onClick={handleResend} className={styles.resendBtn}>
-            Resend Verification Email
-          </button>
-          {resendMsg && <p className={styles.success}>{resendMsg}</p>}
-          {resendErr && <p className={styles.error}>{resendErr}</p>}
+          <Button
+            variant="outline-secondary"
+            className="w-100 mb-2 d-flex align-items-center justify-content-center gap-2"
+          >
+            <img src={Google} alt="Google" width="20" />
+            Continue with Google
+          </Button>
+
+          <div className="text-center text-muted mb-3">
+            Or continue with
+          </div>
+
+          {error && <Alert variant="danger">{error}</Alert>}
+
+          {showResend && (
+            <div className="mb-3">
+              <p>Didn't receive a verification email?</p>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={handleResend}
+              >
+                Resend Verification Email
+              </Button>
+              {resendMsg && (
+                <Alert variant="success" className="mt-2">
+                  {resendMsg}
+                </Alert>
+              )}
+              {resendErr && (
+                <Alert variant="danger" className="mt-2">
+                  {resendErr}
+                </Alert>
+              )}
+            </div>
+          )}
+
+          <Form onSubmit={handleSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label>Email address</Form.Label>
+              <Form.Control
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Password</Form.Label>
+              <Form.Control
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                required
+              />
+            </Form.Group>
+
+            <Button type="submit" variant="primary" className="w-100">
+              Log In
+            </Button>
+          </Form>
+
+          <div className="text-center mt-3">
+            <small className="text-muted">Don't have an account?</small>
+            <br />
+            <Link to="/register">Sign up here</Link>
+            <br />
+            <p className="mt-2">
+              <Link to="/forgot-password">Forgot password?</Link>
+            </p>
+          </div>
         </div>
-      )}
+      </Col>
+    </Row>
+  </Card>
+</Container>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <label>
-          Email:
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
 
-        <label>
-          Password:
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-
-        <button type="submit">Login</button>
-      </form>
-
-      <p className={styles.link}>
-        Don’t have an account? <Link to="/register">Sign up here</Link>
-      </p>
-      <p className={styles.link}>
-        <Link to="/forgot-password">Forgot password?</Link>
-      </p>
-    </div>
   );
 }

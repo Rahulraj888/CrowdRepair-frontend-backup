@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage/DashboardPage';
 import ReportFormPage from './pages/ReportFormPage/ReportFormPage';
 import HeatmapPage from './pages/HeatmapPage/HeatmapPage';
 import AdminPanelPage from './pages/AdminPanelPage/AdminPanelPage';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 import './index.css';
 
