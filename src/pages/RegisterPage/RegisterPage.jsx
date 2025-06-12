@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import authService from "../../services/authService";
-import styles from "./RegisterPage.module.css";
 import { Container, Row, Col, Form, Button, Alert,Card } from "react-bootstrap";
-import registerImage from "../../assets/register.jpg"; // Save your image as register.jpg
+import registerImage from "../../assets/register.jpg"; 
 import Cloud from "../../assets/cloud.jpg";
 
 export default function RegisterPage() {
@@ -96,7 +95,7 @@ export default function RegisterPage() {
         <div className="w-100" style={{ maxWidth: "350px" }}>
           <div className="text-center mb-3">
             <img src={Cloud} alt="Cloud Icon" width="50" className="mb-2" />
-            <h4 className="fw-bold">Welcome to Civic Reporter!</h4>
+            <h4 className="fw-bold">Welcome to Mobile Appz!</h4>
             <p className="text-muted">
               Let's create your account and get started.
             </p>

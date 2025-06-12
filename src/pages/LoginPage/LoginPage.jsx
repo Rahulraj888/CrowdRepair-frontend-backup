@@ -11,11 +11,7 @@ import {
   Card,
   Alert,
 } from "react-bootstrap";
-import styles from "./LoginPage.module.css";
 import loginImage from "../../assets/login.jpg";
-import facebook from "../../assets/facebook.jpg";
-
-import Google from "../../assets/google.jpg";
 import Cloud from "../../assets/cloud.jpg";
 
 export default function LoginPage() {
@@ -41,8 +37,7 @@ export default function LoginPage() {
       navigate("/dashboard");
     } catch (err) {
       const resp = err.response?.data;
-      const msg =
-        resp?.errors?.[0]?.msg || resp?.msg || err.message || "Login failed";
+      const msg = resp?.errors?.[0]?.msg || resp?.msg || err.message || "Login failed";
       setError(msg);
       if (msg.toLowerCase().includes("verify")) {
         setShowResend(true);
@@ -100,20 +95,8 @@ export default function LoginPage() {
             <img src={Cloud} alt="Cloud Icon" width="50" className="mb-2" />
             <h3 className="fw-bold">Welcome Back</h3>
             <p className="text-muted">
-              Log in to your Civic Reporter account.
+              Log in to your Mobile Appz account.
             </p>
-          </div>
-
-          <Button
-            variant="outline-secondary"
-            className="w-100 mb-2 d-flex align-items-center justify-content-center gap-2"
-          >
-            <img src={Google} alt="Google" width="20" />
-            Continue with Google
-          </Button>
-
-          <div className="text-center text-muted mb-3">
-            Or continue with
           </div>
 
           {error && <Alert variant="danger">{error}</Alert>}

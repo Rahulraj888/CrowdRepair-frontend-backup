@@ -16,7 +16,9 @@ export default function ForgotPasswordPage() {
       await authService.forgotPassword(email);
       setMessage('Password reset email sent. Please Check your inbox.');
     } catch (err) {
-      setError(err.message || 'Failed to send reset email');
+      const resp = err.response?.data;
+      const msg = resp?.errors?.[0]?.msg || resp?.msg || err.message || "Failed to send reset email";
+      setError(msg);
     }
   };
 
