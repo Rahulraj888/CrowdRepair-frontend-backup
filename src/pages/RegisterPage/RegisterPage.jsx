@@ -44,7 +44,9 @@ export default function RegisterPage() {
         "Registration successful! Please verify your email before logging in."
       );
     } catch (err) {
-      setError(err.message || "Something went wrong. Try again.");
+      const resp = err.response?.data;
+      const msg = resp?.errors?.[0]?.msg || resp?.msg || err.message || "Failed to Register Account";
+      setError(msg);
     }
   };
 
