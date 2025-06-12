@@ -19,7 +19,7 @@ function App() {
   return (
     <>
       <Header />
-      <main style={{ padding: '2rem', maxWidth: '1280px', margin: '0 auto' }}>
+      <main style={{ padding: '0rem', maxWidth: '100%', margin: "0" }}>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />

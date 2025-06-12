@@ -1,126 +1,138 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import authService from '../../services/authService';
-import styles from './RegisterPage.module.css';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { Container, Row, Col, Form, Button } from "react-bootstrap";
+import styles from "./RegisterPage.module.css";
+import registerImage from "../../assets/register.png";
 
 export default function RegisterPage() {
-  const [name, setName]         = useState('');
-  const [email, setEmail]       = useState('');
-  const [mobile, setMobile]     = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm]   = useState('');
-  const [error, setError]       = useState('');
-  const [success, setSuccess]   = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [termsAgreed, setTermsAgreed] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    // Password & confirm match
     if (password !== confirm) {
-      setError('Passwords do not match');
+      alert("Passwords do not match!");
       return;
     }
-
-    // Mobile validation
-    const mobileRegex = /^\d{10}$/;
-    if (!mobileRegex.test(mobile)) {
-      setError('Mobile number must be exactly 10 digits');
+    if (!termsAgreed) {
+      alert("You must agree to the terms and conditions.");
       return;
     }
-
-    // Password strength: min 6 chars, 1 uppercase, 1 lowercase, 1 digit
-    const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
-    if (!pwdRegex.test(password)) {
-      setError(
-        'Password must be at least 6 characters and include uppercase, lowercase, and a number'
-      );
-      return;
-    }
-
-    try {
-      await authService.register({ name, email, mobile, password });
-      setSuccess('Registration successful! Please verify your email before logging in.');
-    } catch (err) {
-      setError(err.message || 'Something went wrong. Try again.');
-    }
+    // Submit logic here
   };
 
   return (
-    <div className={styles.container}>
-      <h2>Create an Account</h2>
+    <Container fluid className="px-0 mx-0">
+      <Row className="g-0 align-items-center" style={{ minHeight: "100vh" }}>
+        {/* Left Image Section */}
+        <Col
+          md={6}
+          className="d-none d-md-flex justify-content-center align-items-center"
+          style={{ padding: 0, margin: 0 }}
+        >
+          <img
+  src={registerImage}
+  alt="Register"
+  style={{
+    height: "100vh",
+    width: "100vw",
+    objectFit: "cover",
+    display: "block",
+    margin: "0",
+    padding: "0",
+    border: "none",
+  }}
+/>
 
-      {error && <p className={styles.error}>{error}</p>}
+        </Col>
 
-      {success && (
-        <>
-          <p className={styles.success}>{success}</p>
-          <p className={styles.link}>
-            Already verified? <Link to="/login">Log in here</Link>
-          </p>
-        </>
-      )}
+        {/* Right Form Section */}
+        <Col
+          xs={12}
+          md={6}
+          className="d-flex justify-content-center align-items-center"
+          style={{ padding: 0, margin: 0 }}
+        >
+          <div style={{ width: "100%", maxWidth: "500px", padding: "2rem" }}>
+            <h2 className="mb-3 text-center">Welcome to Civic Reporter!</h2>
+            <p className="text-muted text-center mb-4">
+              Let’s create your account and get started.
+            </p>
+            <Form onSubmit={handleSubmit}>
+              <Form.Group className="mb-3" controlId="formName">
+                <Form.Label>Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </Form.Group>
 
-      {!success && (
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <label>
-            Name:
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-            />
-          </label>
+              <Form.Group className="mb-3" controlId="formEmail">
+                <Form.Label>Email Address</Form.Label>
+                <Form.Control
+                  type="email"
+                  placeholder="john.doe@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </Form.Group>
 
-          <label>
-            Email:
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
-          </label>
+              <Form.Group className="mb-3" controlId="formPassword">
+                <Form.Label>Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Form.Group>
 
-          <label>
-            Mobile:
-            <input
-              type="tel"
-              value={mobile}
-              onChange={e => setMobile(e.target.value)}
-              pattern="\d{10}"
-              title="Enter exactly 10 digits"
-              required
-            />
-          </label>
+              <Form.Group className="mb-3" controlId="formConfirmPassword">
+                <Form.Label>Confirm Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Confirm Password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                />
+              </Form.Group>
 
-          <label>
-            Password:
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}"
-              title="At least 6 characters, including uppercase, lowercase, and a number"
-              required
-            />
-          </label>
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="checkbox"
+                  label={
+                    <>
+                      I agree to the{" "}
+                      <a href="#" className="text-primary">
+                        Terms and Conditions
+                      </a>
+                    </>
+                  }
+                  checked={termsAgreed}
+                  onChange={() => setTermsAgreed(!termsAgreed)}
+                />
+              </Form.Group>
 
-          <label>
-            Confirm Password:
-            <input
-              type="password"
-              value={confirm}
-              onChange={e => setConfirm(e.target.value)}
-              required
-            />
-          </label>
+              <Button type="submit" variant="primary" className="w-100">
+                Sign Up
+              </Button>
 
-          <button type="submit">Register</button>
-        </form>
-      )}
-    </div>
+              <p className="mt-3 text-center">
+                Already have an account? <Link to="/login">Log In</Link>
+              </p>
+            </Form>
+          </div>
+        </Col>
+      </Row>
+    </Container>
   );
 }

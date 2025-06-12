@@ -1,18 +1,22 @@
-// src/components/Footer.js
+// src/components/Footer/Footer.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FaTwitter, FaFacebookF, FaLinkedinIn } from 'react-icons/fa';
 
 function Footer() {
   return (
-    <footer className="bg-dark text-white pt-4 pb-3 mt-5">
+    <footer className="bg-dark text-white pt-4 pb-3">
       <div className="container">
         <div className="row align-items-center text-center text-md-start">
           
           {/* Logo and Brand */}
           <div className="col-md-4 mb-3 mb-md-0">
             <div className="d-flex align-items-center justify-content-center justify-content-md-start">
-              {/* You can replace the emoji with an actual logo if you have one */}
-              <span style={{ fontSize: '1.5rem', marginRight: '10px' }}>🌈</span>
+              <img
+                src="/logo192.png" // Replace with your actual logo path if needed
+                alt="Logo"
+                style={{ width: '32px', height: '32px', marginRight: '10px' }}
+              />
               <span className="fw-bold fs-5">Civic Reporter</span>
             </div>
           </div>
@@ -40,14 +44,14 @@ function Footer() {
 
           {/* Social Icons */}
           <div className="col-md-4 text-center text-md-end">
-            <a href="https://twitter.com" className="text-white me-3">
-              <i className="fab fa-twitter"></i>
+            <a href="https://twitter.com" target="_blank" rel="noreferrer" className="text-white me-3">
+              <FaTwitter />
             </a>
-            <a href="https://facebook.com" className="text-white me-3">
-              <i className="fab fa-facebook-f"></i>
+            <a href="https://facebook.com" target="_blank" rel="noreferrer" className="text-white me-3">
+              <FaFacebookF />
             </a>
-            <a href="https://linkedin.com" className="text-white">
-              <i className="fab fa-linkedin-in"></i>
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="text-white">
+              <FaLinkedinIn />
             </a>
           </div>
 
