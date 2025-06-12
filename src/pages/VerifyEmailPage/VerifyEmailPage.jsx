@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "react-router-dom";
 import authService from "../../services/authService";
-import styles from "./VerifyEmailPage.module.css";
 import {
   Container,
   Row,
@@ -11,8 +10,7 @@ import {
   Card,
   Alert,
 } from "react-bootstrap";
-import emailVerify from "../../assets/emailVerify.jpg";
-import emailLogo from "../../assets/email.jpg";
+import logo from "/logo.jpeg"
 
 export default function VerifyEmailPage() {
   const [status, setStatus] = useState("loading"); // 'loading' | 'success' | 'error'
@@ -67,7 +65,7 @@ export default function VerifyEmailPage() {
           {/* Left Image */}
           <Col xs={12} md={6}>
             <img
-              src={emailVerify}
+              src={logo}
               alt="Login Illustration"
               className="img-fluid h-100"
               style={{
@@ -119,16 +117,6 @@ export default function VerifyEmailPage() {
               )}
 
               {status === "error" && <Alert variant="danger">{message}</Alert>}
-
-              <div className="text-center mb-4">
-                <Link
-                  to="/login"
-                  className="text-decoration-none fw-medium"
-                  style={{ color: "#3366ff" }}
-                >
-                  ← Go back to Login
-                </Link>
-              </div>
 
               {status === "error" &&
                 message.toLowerCase().includes("expired") && (
