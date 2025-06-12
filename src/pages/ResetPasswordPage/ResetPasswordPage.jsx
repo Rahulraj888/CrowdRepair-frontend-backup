@@ -20,7 +20,9 @@ export default function ResetPasswordPage() {
       setMessage('Password has been reset. You can now log in.');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.message || 'Failed to reset password');
+      const resp = err.response?.data;
+      const msg = resp?.errors?.[0]?.msg || resp?.msg || err.message || "Failed to reset password";
+      setError(msg);
     }
   };
 

@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage/DashboardPage';
 import ReportFormPage from './pages/ReportFormPage/ReportFormPage';
 import HeatmapPage from './pages/HeatmapPage/HeatmapPage';
 import AdminPanelPage from './pages/AdminPanelPage/AdminPanelPage';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 import './index.css';
 
@@ -19,7 +20,7 @@ function App() {
   return (
     <>
       <Header />
-      <main style={{ padding: '2rem', maxWidth: '1280px', margin: '0 auto' }}>
+      <main style={{ padding: '0rem', maxWidth: '100%', margin: "0" }}>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
