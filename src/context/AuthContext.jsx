@@ -9,9 +9,8 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  //TODO: check the verification flow and remove the public api check
+  // Fetch current user on protected routes
   useEffect(() => {
-    // List of public routes where we should NOT call /me
     const publicPaths = [
       '/login',
       '/register',
@@ -20,13 +19,10 @@ export function AuthProvider({ children }) {
       '/reset-password'
     ];
 
-    // If the current path starts with any public path, skip fetching /me
     if (publicPaths.some(p => pathname.startsWith(p))) {
       setUser(null);
       return;
     }
-
-    // Otherwise, only fetch /me if there's a token
     const token = localStorage.getItem('token');
     if (!token) {
       setUser(null);
@@ -43,6 +39,7 @@ export function AuthProvider({ children }) {
     })();
   }, [pathname]);
 
+  // Logout helper
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('isAdmin');
@@ -50,8 +47,16 @@ export function AuthProvider({ children }) {
     navigate('/login', { replace: true });
   };
 
+  // New: Update profile helper
+  const updateProfile = async (updates) => {
+    // calls the service, then syncs context
+    const updatedUser = await authService.updateProfile(updates);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, logout }}>
+    <AuthContext.Provider value={{ user, setUser, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
