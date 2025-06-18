@@ -13,7 +13,7 @@ function Footer() {
           <div className="col-md-4 mb-3 mb-md-0">
             <div className="d-flex align-items-center justify-content-center justify-content-md-start">
               <img
-                src="/logo192.png" // Replace with your actual logo path if needed
+                src="/logo.jpg" // Replace with your actual logo path if needed
                 alt="Logo"
                 style={{ width: '32px', height: '32px', marginRight: '10px' }}
               />
