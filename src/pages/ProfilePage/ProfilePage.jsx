@@ -13,26 +13,47 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setForm({
-        name: user.name,
+        name: user.name || '',
         mobile: user.mobile || '',
         bio: user.bio || ''
       });
     }
   }, [user]);
 
-  const handleChange = e => {
+  // ✅ Auto-hide success message after 4 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  const handleChange = (e) => {
     setError('');
     setSuccess('');
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     setSaving(true);
+  
+    const trimmedMobile = form.mobile.trim();
+  
+    if (trimmedMobile && !/^\d{10}$/.test(trimmedMobile)) {
+      setError("Mobile number must be exactly 10 digits.");
+      setSaving(false);
+      return;
+    }
+  
     try {
-      const updated = await authService.updateProfile(form);
+      const updated = await authService.updateProfile({
+        name: form.name.trim(),
+        mobile: trimmedMobile,
+        bio: form.bio.trim()
+      });
       setUser(updated);
       setSuccess('Profile updated successfully.');
     } catch (err) {
@@ -45,7 +66,7 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
+  };  
 
   return (
     <div className="container py-4">
@@ -101,9 +122,7 @@ export default function ProfilePage() {
             maxLength={500}
             placeholder="Tell us a little about yourself (optional)"
           />
-          <div className="form-text">
-            {form.bio.length}/500 characters
-          </div>
+          <div className="form-text">{form.bio.length}/500 characters</div>
         </div>
 
         <div className="mb-4">

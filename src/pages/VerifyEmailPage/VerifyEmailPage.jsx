@@ -10,14 +10,15 @@ import {
   Card,
   Alert,
 } from "react-bootstrap";
-import logo from "/logo.jpeg"
+import logo from "/logo.jpeg";
 
 export default function VerifyEmailPage() {
   const [status, setStatus] = useState("loading"); // 'loading' | 'success' | 'error'
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
-  const [resendMsg, setResend] = useState("");
+  const [resendMsg, setResendMsg] = useState("");
   const [resendErr, setResendErr] = useState("");
+  const [resendDone, setResendDone] = useState(false); // ✅ New state
   const calledOnce = useRef(false);
   const token = new URLSearchParams(useLocation().search).get("token");
 
@@ -44,17 +45,21 @@ export default function VerifyEmailPage() {
 
   const handleResend = async (e) => {
     e.preventDefault();
-    setResend("");
+    setResendMsg("");
     setResendErr("");
+    // setMessage("");      
+    setStatus("");       
+  
     try {
-      const { msg } = await authService.resendVerification(email);
-      setResend(msg);
+      const { msg } = await authService.resendVerification(email.trim());
+      setResendMsg(msg);
+      setResendDone(true);
     } catch (err) {
-      setResendErr(
+      const msg =
         err.response?.data?.errors?.[0]?.msg ||
-          err.response?.data?.msg ||
-          err.message
-      );
+        err.response?.data?.msg ||
+        err.message;
+      setResendErr(msg);
     }
   };
 
@@ -85,14 +90,11 @@ export default function VerifyEmailPage() {
             className="d-flex align-items-center justify-content-center p-4"
           >
             <div className="w-100" style={{ maxWidth: "360px" }}>
-              <h2 className="mb-3"> Email Verification</h2>
+              <h2 className="mb-3">Email Verification</h2>
 
               {status === "loading" && (
                 <div className="d-flex flex-column align-items-center text-center">
-                  <div
-                    className="spinner-border text-primary mb-3"
-                    role="status"
-                  >
+                  <div className="spinner-border text-primary mb-3" role="status">
                     <span className="visually-hidden">Loading...</span>
                   </div>
                   <p className="text-muted">
@@ -116,10 +118,13 @@ export default function VerifyEmailPage() {
                 </>
               )}
 
-              {status === "error" && <Alert variant="danger">{message}</Alert>}
+              {status === "error" && message && (
+                <Alert variant="danger">{message}</Alert>
+              )}
 
               {status === "error" &&
-                message.toLowerCase().includes("expired") && (
+                message.toLowerCase().includes("expired") &&
+                !resendDone && (
                   <Form onSubmit={handleResend}>
                     <Form.Group className="mb-3" controlId="formEmail">
                       <Form.Label>
@@ -128,26 +133,34 @@ export default function VerifyEmailPage() {
                       <Form.Control
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setResendMsg("");
+                          setResendErr("");
+                        }}
                         placeholder="you@example.com"
                         required
                       />
                     </Form.Group>
-                    <Button type="submit" variant="primary" className="w-100">
-                      Resend Email
+                    <Button type="submit" variant="primary" className="w-100" disabled={resendDone}>
+                      {resendDone ? "Verification Sent" : "Resend Email"}
                     </Button>
-                    {resendMsg && (
-                      <Alert className="mt-3" variant="success">
-                        {resendMsg}
-                      </Alert>
-                    )}
-                    {resendErr && (
-                      <Alert className="mt-3" variant="danger">
-                        {resendErr}
-                      </Alert>
-                    )}
                   </Form>
                 )}
+
+              {/* Success message after resend */}
+              {resendMsg && (
+                <Alert className="mt-3" variant="success">
+                  {resendMsg}
+                </Alert>
+              )}
+
+              {/* Resend error */}
+              {resendErr && (
+                <Alert className="mt-3" variant="danger">
+                  {resendErr}
+                </Alert>
+              )}
             </div>
           </Col>
         </Row>
