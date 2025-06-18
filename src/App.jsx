@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
@@ -17,6 +16,7 @@ import ReportFormPage from './pages/ReportFormPage/ReportFormPage';
 import HeatmapPage from './pages/HeatmapPage/HeatmapPage';
 import AdminPanelPage from './pages/AdminPanelPage/AdminPanelPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
+import ChangePasswordPage from './pages/ChangePasswordPage/ChangePasswordPage';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
@@ -47,6 +47,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/change-password"
+              element={
+                <ProtectedRoute>
+                  <ChangePasswordPage />
                 </ProtectedRoute>
               }
             />

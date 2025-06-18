@@ -38,14 +38,17 @@ async function resendVerification(email) {
   const { data } = await api.post('/resend-verification', { email });
   return data;
 }
-/**
- * Update the current user’s profile
- * @param {Object} data  e.g. { name, mobile, bio }
- * @returns the updated user object
- */
+
+//update profile details
 async function updateProfile(data) {
   const { data: user } = await api.put('/me', data);
   return user;
+}
+
+//change password
+async function changePassword({ currentPassword, newPassword }) {
+  const { data } = await api.post('/change-password', { currentPassword, newPassword });
+  return data;
 }
 
 // Get current user
@@ -62,5 +65,6 @@ export default {
   resetPassword,
   resendVerification,
   getCurrentUser,
-  updateProfile,      // <-- new export
+  updateProfile,
+  changePassword,
 };

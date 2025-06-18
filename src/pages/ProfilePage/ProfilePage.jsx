@@ -1,6 +1,7 @@
 import { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import authService from '../../services/authService';
+import { Link } from 'react-router-dom';
 
 export default function ProfilePage() {
   const { user, setUser } = useContext(AuthContext);
@@ -108,7 +109,7 @@ export default function ProfilePage() {
         <div className="mb-4">
           <label className="form-label">Password</label>
           <div>
-            <a href="/change-password">Change your password</a>
+            <Link to="/change-password">Change your password</Link>
           </div>
         </div>
 
