@@ -39,11 +39,21 @@ async function resendVerification(email) {
   return data;
 }
 
+//update profile details
+async function updateProfile(data) {
+  const { data: user } = await api.put('/me', data);
+  return user;
+}
+
+//change password
+async function changePassword({ currentPassword, newPassword }) {
+  const { data } = await api.post('/change-password', { currentPassword, newPassword });
+  return data;
+}
+
 // Get current user
 async function getCurrentUser() {
-  console.log("in get currentuser call")
   const { data } = await api.get('/me');
-  console.log(data)
   return data;
 }
 
@@ -55,4 +65,6 @@ export default {
   resetPassword,
   resendVerification,
   getCurrentUser,
+  updateProfile,
+  changePassword,
 };

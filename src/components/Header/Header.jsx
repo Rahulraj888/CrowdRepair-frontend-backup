@@ -81,6 +81,11 @@ export default function Header() {
                       </Link>
                     </li>
                   )}
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/profile">
+                      My Profile
+                    </Link>
+                  </li>
                   <li className="nav-item ms-3">
                     <button
                       className="btn btn-outline-secondary"
