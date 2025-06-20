@@ -27,13 +27,7 @@ export default function Footer() {
                 <Link to="/" className="text-white text-decoration-none">Home</Link>
               </li>
               <li className="list-inline-item me-3">
-                <Link to="/features" className="text-white text-decoration-none">Features</Link>
-              </li>
-              <li className="list-inline-item me-3">
                 <Link to="/about" className="text-white text-decoration-none">About Us</Link>
-              </li>
-              <li className="list-inline-item me-3">
-                <Link to="/feedback" className="text-white text-decoration-none">Feedback</Link>
               </li>
               <li className="list-inline-item">
                 <Link to="/contact" className="text-white text-decoration-none">Contact</Link>

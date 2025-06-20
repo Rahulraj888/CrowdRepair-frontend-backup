@@ -20,7 +20,7 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // ✅ Auto-hide success message after 4 seconds
+  // Auto-hide success message after 4 seconds
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => setSuccess(''), 4000);

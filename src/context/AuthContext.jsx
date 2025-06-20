@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
     navigate('/login', { replace: true });
   };
 
-  // New: Update profile helper
+  // Update profile helper
   const updateProfile = async (updates) => {
     // calls the service, then syncs context
     const updatedUser = await authService.updateProfile(updates);
