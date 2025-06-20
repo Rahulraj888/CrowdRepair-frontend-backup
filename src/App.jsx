@@ -41,6 +41,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
 
+
             {/* Protected routes */}
             <Route
               path="/profile"
