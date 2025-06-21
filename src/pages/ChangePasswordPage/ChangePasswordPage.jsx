@@ -12,6 +12,9 @@ import {
 } from "react-bootstrap";
 import logo from "/logo.jpeg";
 
+// regex for password strength: at least 6 chars, 1 uppercase, 1 lowercase, 1 digit
+const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+
 export default function ChangePasswordPage() {
   const [form, setForm] = useState({
     currentPassword: "",
@@ -31,9 +34,23 @@ export default function ChangePasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.newPassword !== form.confirm) {
-      return setError("New passwords do not match");
+    setError("");
+    setSuccess("");
+
+    // 1. new password strength
+    if (!pwdRegex.test(form.newPassword)) {
+      setError(
+        "New password must be at least 6 characters and include uppercase, lowercase, and a number"
+      );
+      return;
     }
+
+    // 2. confirm match
+    if (form.newPassword !== form.confirm) {
+      setError("New passwords do not match");
+      return;
+    }
+
     setSaving(true);
     try {
       await authService.changePassword({
@@ -79,51 +96,52 @@ export default function ChangePasswordPage() {
           >
             <div className="container py-4">
               <h2 className="mb-4 text-center">Change Password</h2>
-              {error && <div className="alert alert-danger">{error}</div>}
-              {success && <div className="alert alert-success">{success}</div>}
-              <form
+              {error && <Alert variant="danger">{error}</Alert>}
+              {success && <Alert variant="success">{success}</Alert>}
+              <Form
                 onSubmit={handleSubmit}
                 className="d-flex flex-column mx-auto"
                 style={{ maxWidth: 400 }}
               >
-                <div className="mb-3">
-                  <label className="form-label">Current Password</label>
-                  <input
+                <Form.Group className="mb-3">
+                  <Form.Label>Current Password</Form.Label>
+                  <Form.Control
                     name="currentPassword"
                     type="password"
                     value={form.currentPassword}
                     onChange={handleChange}
-                    className="form-control"
                     required
                   />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">New Password</label>
-                  <input
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>New Password</Form.Label>
+                  <Form.Control
                     name="newPassword"
                     type="password"
                     value={form.newPassword}
                     onChange={handleChange}
-                    className="form-control"
+                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}"
+                    title="At least 6 characters, including uppercase, lowercase, and a number"
                     required
-                    minLength={6}
                   />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Confirm New Password</label>
-                  <input
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Confirm New Password</Form.Label>
+                  <Form.Control
                     name="confirm"
                     type="password"
                     value={form.confirm}
                     onChange={handleChange}
-                    className="form-control"
                     required
                   />
-                </div>
-                <button className="btn btn-primary" disabled={saving}>
+                </Form.Group>
+
+                <Button type="submit" variant="primary" disabled={saving}>
                   {saving ? "Saving…" : "Change Password"}
-                </button>
-              </form>
+                </Button>
+              </Form>
             </div>
           </Col>
         </Row>

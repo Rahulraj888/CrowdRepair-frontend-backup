@@ -6,12 +6,12 @@ import {
   Container,
   Row,
   Col,
-  Form,
-  Button,
   Card,
-  Alert,
 } from "react-bootstrap";
 import logo from "/logo.jpeg";
+
+// regex for password strength: at least 6 chars, 1 uppercase, 1 lowercase, 1 digit
+const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -25,6 +25,15 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    // client‐side password strength check
+    if (!pwdRegex.test(password)) {
+      setError(
+        "Password must be at least 6 characters and include uppercase, lowercase, and a number"
+      );
+      return;
+    }
+
     try {
       await authService.resetPassword(token, password);
       setMessage("Password has been reset. You can now log in.");
@@ -58,6 +67,7 @@ export default function ResetPasswordPage() {
               }}
             />
           </Col>
+
           <Col
             xs={12}
             md={6}
@@ -74,6 +84,8 @@ export default function ResetPasswordPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}"
+                    title="At least 6 characters, including uppercase, lowercase, and a number"
                     required
                   />
                 </label>

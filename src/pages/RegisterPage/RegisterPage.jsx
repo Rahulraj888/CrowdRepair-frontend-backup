@@ -5,15 +5,31 @@ import { Container, Row, Col, Form, Button, Alert, Card } from "react-bootstrap"
 import registerImage from "../../assets/register.jpg";
 import Cloud from "../../assets/cloud.jpg";
 
+// regex for validating most email addresses
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false); // For disabling submit
+  const [loading, setLoading] = useState(false);
+
+  // validate email on every change
+  const handleEmailChange = (e) => {
+    const val = e.target.value;
+    setEmail(val);
+    setError("");
+    setEmailError(
+      val && !emailRegex.test(val)
+        ? "Please enter a valid email address"
+        : ""
+    );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,12 +37,21 @@ export default function RegisterPage() {
     setSuccess("");
     setLoading(true);
 
+    // email match
+    if (emailError || !emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address before submitting.");
+      setLoading(false);
+      return;
+    }
+
+    // password match
     if (password !== confirm) {
       setError("Passwords do not match");
       setLoading(false);
       return;
     }
 
+    // mobile validation
     const mobileRegex = /^\d{10}$/;
     if (!mobileRegex.test(mobile.trim())) {
       setError("Mobile number must be exactly 10 digits");
@@ -34,6 +59,7 @@ export default function RegisterPage() {
       return;
     }
 
+    // password strength
     const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
     if (!pwdRegex.test(password)) {
       setError("Password must be at least 6 characters and include uppercase, lowercase, and a number");
@@ -46,9 +72,8 @@ export default function RegisterPage() {
         name: name.trim(),
         email: email.trim(),
         mobile: mobile.trim(),
-        password
+        password,
       });
-
       setSuccess("Registration successful! Please verify your email before logging in.");
     } catch (err) {
       const resp = err.response?.data;
@@ -121,19 +146,24 @@ export default function RegisterPage() {
                     />
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
+                  {/* Email with regex validation */}
+                  <Form.Group controlId="formEmail" className="mb-3">
                     <Form.Label>Email Address</Form.Label>
                     <Form.Control
                       type="email"
                       value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setError("");
-                      }}
+                      onChange={handleEmailChange}
+                      pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+                      title="Enter a valid email address"
+                      isInvalid={!!emailError}
                       required
                     />
+                    <Form.Control.Feedback type="invalid">
+                      {emailError}
+                    </Form.Control.Feedback>
                   </Form.Group>
 
+                  {/* Mobile */}
                   <Form.Group className="mb-3">
                     <Form.Label>Mobile</Form.Label>
                     <Form.Control
@@ -149,6 +179,7 @@ export default function RegisterPage() {
                     />
                   </Form.Group>
 
+                  {/* Password */}
                   <Form.Group className="mb-3">
                     <Form.Label>Password</Form.Label>
                     <Form.Control
@@ -164,6 +195,7 @@ export default function RegisterPage() {
                     />
                   </Form.Group>
 
+                  {/* Confirm Password */}
                   <Form.Group className="mb-3">
                     <Form.Label>Confirm Password</Form.Label>
                     <Form.Control
@@ -177,6 +209,7 @@ export default function RegisterPage() {
                     />
                   </Form.Group>
 
+                  {/* Terms & Conditions */}
                   <Form.Group className="mb-3">
                     <Form.Check
                       type="checkbox"
@@ -189,6 +222,7 @@ export default function RegisterPage() {
                     />
                   </Form.Group>
 
+                  {/* Submit */}
                   <Button type="submit" variant="primary" className="w-100" disabled={loading}>
                     {loading ? "Registering..." : "Sign Up"}
                   </Button>
