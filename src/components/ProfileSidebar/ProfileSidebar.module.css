@@ -6,7 +6,7 @@
 
 .nav-link.active {
   background-color: #e9ecef; /* slightly darker for active */
-  border-start-width: 3px;
-  border-start-style: solid;
-  border-start-color: #0d6efd; /* your primary blue */
+  border-right-width: 3px;
+  border-right-style: solid;
+  border-right-color: #0d6efd; /* your primary blue */
 }

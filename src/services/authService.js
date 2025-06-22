@@ -56,6 +56,23 @@ async function getCurrentUser() {
   const { data } = await api.get('/me');
   return data;
 }
+//store infrastructure issues details
+async function submitReport(formData)
+{
+  console.log('📤 Submitting report with the following data:');
+    
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
+
+    // Simulate a delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('✅ Mock report submitted!');
+        resolve({ msg: 'Mock submission successful!' });
+      }, 1000);
+    });
+}
 
 export default {
   register,
@@ -67,4 +84,5 @@ export default {
   getCurrentUser,
   updateProfile,
   changePassword,
+  submitReport
 };
