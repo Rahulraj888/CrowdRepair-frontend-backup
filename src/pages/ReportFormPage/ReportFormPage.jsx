@@ -49,7 +49,6 @@ export default function ReportFormPage() {
           onClose={() => setShowMap(false)}
         />
       )}
-
       <Card className="p-4">
         <h2>Report Issue</h2>
         {error && <Alert variant="danger">{error}</Alert>}
