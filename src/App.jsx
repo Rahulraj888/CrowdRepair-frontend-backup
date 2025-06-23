@@ -20,6 +20,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage/ChangePasswordPage';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
+import MyReportsPage from './pages/MyReportsPage.jsx/MyReportsPage';
 
 function App() {
   const { pathname } = useLocation();
@@ -91,8 +92,17 @@ function App() {
               }
             />
 
+            <Route
+              path="/my-reports"
+              element={
+                <ProtectedRoute>
+                  <MyReportsPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
       </div>

@@ -9,16 +9,8 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  // Fetch current user on protected routes
   useEffect(() => {
-    const publicPaths = [
-      '/login',
-      '/register',
-      '/verify-email',
-      '/forgot-password',
-      '/reset-password'
-    ];
-
+    const publicPaths = ['/login','/register','/verify-email','/forgot-password','/reset-password'];
     if (publicPaths.some(p => pathname.startsWith(p))) {
       setUser(null);
       return;
@@ -28,7 +20,6 @@ export function AuthProvider({ children }) {
       setUser(null);
       return;
     }
-
     (async () => {
       try {
         const u = await authService.getCurrentUser();
@@ -39,20 +30,16 @@ export function AuthProvider({ children }) {
     })();
   }, [pathname]);
 
-  // Logout helper
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('isAdmin');
     setUser(null);
     navigate('/login', { replace: true });
   };
 
-  // Update profile helper
   const updateProfile = async (updates) => {
-    // calls the service, then syncs context
-    const updatedUser = await authService.updateProfile(updates);
-    setUser(updatedUser);
-    return updatedUser;
+    const updated = await authService.updateProfile(updates);
+    setUser(updated);
+    return updated;
   };
 
   return (

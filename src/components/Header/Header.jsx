@@ -86,6 +86,13 @@ export default function Header() {
                       My Profile
                     </Link>
                   </li>
+                  {user.role !== 'admin' && (
+                    <li className="nav-item">
+                      <Link className="nav-link" to="/my-reports">
+                        My Reports
+                      </Link>
+                    </li>
+                  )}
                   <li className="nav-item ms-3">
                     <button
                       className="btn btn-outline-secondary"
