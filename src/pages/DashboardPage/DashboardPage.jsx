@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -8,8 +8,12 @@ import {
   Badge,
   Form,
   InputGroup,
+  ListGroup,
+  Image,
 } from "react-bootstrap";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import Map, { Marker, Popup } from "react-map-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { AuthContext } from "../../context/AuthContext";
 import {
   getReports,
   upvoteReport,
@@ -18,20 +22,37 @@ import {
 } from "../../services/reportService";
 
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export default function DashboardPage() {
+  const { user } = useContext(AuthContext);
   const [reports, setReports] = useState([]);
   const [statusFilter, setStatus] = useState("all");
   const [typeFilter, setType] = useState("all");
   const [commentsById, setCommentsById] = useState({});
   const [newComment, setNewComment] = useState({});
+  const [viewState, setViewState] = useState({
+    latitude: 43.65,
+    longitude: -79.38,
+    zoom: 12,
+  });
+  const [popupInfo, setPopupInfo] = useState(null);
+
+  // helper to format “2h ago” / “3d ago”
+  function timeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr);
+    const hrs = Math.floor(diff / (1000 * 60 * 60));
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
+  }
 
   // Fetch reports whenever filters change
   useEffect(() => {
     (async () => {
       try {
-        const r = await getReports({ status: statusFilter, type: typeFilter });
-        setReports(r);
+        const all = await getReports({ status: statusFilter, type: typeFilter });
+        setReports(all.filter((r) => r.user !== user?._id));
       } catch (err) {
         console.error("Failed to load reports:", err);
       }
@@ -72,8 +93,10 @@ export default function DashboardPage() {
   };
 
   const handleAddComment = async (id) => {
+    const text = newComment[id]?.trim();
+    if (!text) return;
     try {
-      await addComment(id, newComment[id]);
+      await addComment(id, text);
       await fetchComments(id);
       setNewComment((prev) => ({ ...prev, [id]: "" }));
     } catch (err) {
@@ -81,6 +104,7 @@ export default function DashboardPage() {
     }
   };
 
+  // Summary stats
   const total = reports.length;
   const resolved = reports.filter((r) => r.status === "Fixed").length;
   const avgRes = (() => {
@@ -100,13 +124,14 @@ export default function DashboardPage() {
     <Container fluid className="py-4">
       <h2>Dashboard</h2>
 
+      {/* Filters */}
       <Row className="mb-3">
         <Col xs={6}>
           <Form.Select
             value={statusFilter}
             onChange={(e) => setStatus(e.target.value)}
           >
-            {["all", "Pending", "In Progress", "Fixed"].map((s) => (
+            {["all", "Pending", "In Progress", "Fixed","Rejected"].map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
@@ -128,30 +153,41 @@ export default function DashboardPage() {
       </Row>
 
       <Row>
+        {/* Mapbox Map */}
         <Col lg={8} className="mb-4">
           <Card>
-            <MapContainer
-              center={[43.65, -79.38]}
-              zoom={12}
-              style={{ height: "400px", borderRadius: "8px" }}
+            <Map
+              {...viewState}
+              style={{ width: "100%", height: 400, borderRadius: 8 }}
+              mapStyle="mapbox://styles/mapbox/streets-v11"
+              mapboxAccessToken={MAPBOX_TOKEN}
+              onMove={(evt) => setViewState(evt.viewState)}
             >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {reports.map((r) => (
-                <Marker
-                  key={r._id}
-                  position={[
-                    r.location.coordinates[1],
-                    r.location.coordinates[0],
-                  ]}
+              {reports
+                .filter((r) => r.user !== user.id)    /* hide your own */
+                .map((r) => (
+                  <Marker
+                    key={r._id}
+                    latitude={r.location.coordinates[1]}
+                    longitude={r.location.coordinates[0]}
+                    color="red"
+                    onClick={() => setPopupInfo(r)}
+                  />
+                ))}
+
+              {popupInfo && (
+                <Popup
+                  anchor="top"
+                  longitude={popupInfo.location.coordinates[0]}
+                  latitude={popupInfo.location.coordinates[1]}
+                  onClose={() => setPopupInfo(null)}
                 >
-                  <Popup>
-                    <strong>{r.issueType}</strong>
-                    <br />
-                    {r.description}
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
+                  <strong>{popupInfo.issueType}</strong>
+                  <br />
+                  {popupInfo.description}
+                </Popup>
+              )}
+            </Map>
             <Card.Body className="d-flex justify-content-around text-center">
               <div>
                 <h5>{total}</h5>
@@ -169,81 +205,100 @@ export default function DashboardPage() {
           </Card>
         </Col>
 
+        {/* Recent Reports List */}
         <Col lg={4}>
           <h5>Recent Reports</h5>
-          {reports.slice(0, 6).map((r, idx) => (
-            <Card key={r._id} className="mb-3">
-              {r.imageUrls?.[0] && (
-                <Card.Img
-                  variant="top"
-                  src={`${BACKEND}${r.imageUrls[0]}`}
-                  style={{ height: "180px", objectFit: "cover" }}
-                />
-              )}
-              <Card.Header className="d-flex justify-content-between">
-                <span>{r.issueType}</span>
-                <Badge
-                  bg={
-                    r.status === "Fixed"
-                      ? "success"
-                      : r.status === "In Progress"
-                      ? "warning"
-                      : "secondary"
-                  }
-                >
-                  {r.status}
-                </Badge>
-              </Card.Header>
+          <ListGroup variant="flush">
+            {reports
+              .filter((r) => r.user !== user.id)   /* hide your own */
+              .slice(0, 6)
+              .map((r, idx) => (
+                <ListGroup.Item key={r._id} className="py-3">
+                  <div className="d-flex">
+                    {r.imageUrls?.[0] && (
+                      <Image
+                        src={`${BACKEND}${r.imageUrls[0]}`}
+                        thumbnail
+                        style={{ width: 80, height: 60, objectFit: "cover" }}
+                        className="me-3"
+                      />
+                    )}
+                    <div className="flex-grow-1">
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div>
+                          <strong>{r.issueType}</strong>
+                          <div className="text-muted small">
+                            {timeAgo(r.createdAt)}
+                          </div>
+                        </div>
+                        <Badge
+                          bg={
+                            r.status === "Fixed"
+                              ? "success"
+                              : r.status === "In Progress"
+                              ? "warning"
+                              : r.status === "Rejected"
+                              ? "danger"
+                              : "secondary"
+                          }
+                        >
+                          {r.status}
+                        </Badge>
+                      </div>
 
-              <Card.Body>
-                <Card.Text style={{ height: "60px", overflow: "hidden" }}>
-                  {r.description}
-                </Card.Text>
+                      <p className="mt-1 mb-2 small">{r.description}</p>
 
-                <div className="d-flex justify-content-between mb-2">
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    onClick={() => handleUpvote(r._id, idx)}
-                  >
-                    👍 {r.upvoteCount || 0}
-                  </Button>
-                  <Button
-                    variant="outline-secondary"
-                    size="sm"
-                    onClick={() => fetchComments(r._id)}
-                  >
-                    💬 {r.commentCount}
-                  </Button>
-                </div>
+                      <div className="d-flex gap-3 small">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => handleUpvote(r._id, idx)}
+                        >
+                          👍 Upvote ({r.upvoteCount || 0})
+                        </Button>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => fetchComments(r._id)}
+                        >
+                          💬 Comment ({r.commentCount})
+                        </Button>
+                      </div>
 
-                {(commentsById[r._id] || []).map((c) => (
-                  <div key={c._id} className="mt-2 px-2 py-1 bg-light rounded">
-                    <strong>{c.user.name}:</strong> {c.text}
+                      {(commentsById[r._id] || []).map((c) => (
+                        <div
+                          key={c._id}
+                          className="mt-2 px-2 py-1 bg-light rounded small"
+                        >
+                          <strong>{c.user.name}:</strong> {c.text}
+                        </div>
+                      ))}
+
+                      <InputGroup className="mt-2">
+                        <Form.Control
+                          placeholder="Add comment…"
+                          size="sm"
+                          value={newComment[r._id] || ""}
+                          onChange={(e) =>
+                            setNewComment((prev) => ({
+                              ...prev,
+                              [r._id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleAddComment(r._id)}
+                        >
+                          Post
+                        </Button>
+                      </InputGroup>
+                    </div>
                   </div>
-                ))}
-
-                <InputGroup className="mt-2">
-                  <Form.Control
-                    placeholder="Add comment..."
-                    value={newComment[r._id] || ""}
-                    onChange={(e) =>
-                      setNewComment((prev) => ({
-                        ...prev,
-                        [r._id]: e.target.value,
-                      }))
-                    }
-                  />
-                  <Button
-                    variant="primary"
-                    onClick={() => handleAddComment(r._id)}
-                  >
-                    Post
-                  </Button>
-                </InputGroup>
-              </Card.Body>
-            </Card>
-          ))}
+                </ListGroup.Item>
+              ))}
+          </ListGroup>
         </Col>
       </Row>
     </Container>
