@@ -37,3 +37,21 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
   object-fit: cover;
 }
+
+
+.equalHeightRow {
+  align-items: stretch;
+}
+
+.equalHeightCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.sideImageFull {
+  flex: 1;
+  object-fit: cover;
+  height: 100%;
+  border-radius: 1rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+}

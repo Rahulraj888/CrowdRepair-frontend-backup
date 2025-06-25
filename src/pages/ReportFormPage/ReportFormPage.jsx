@@ -143,20 +143,20 @@ export default function ReportFormPage() {
   return (
     <div className={styles.wrapper}>
       <Container>
-        <Row className="align-items-start gx-2 gy-4">
-          {/* Illustration */}
-          <Col xs={12} md={6}>
-            <Image
-              src={illustration}
-              alt="Report illustration"
-              fluid
-              className={styles.sideImage}
-            />
-          </Col>
+      <Row className={`gx-2 gy-4 ${styles.equalHeightRow}`}>
+        {/* Left Column (Image) */}
+        <Col xs={12} md={6} className={styles.equalHeightCol}>
+          <Image
+            src={illustration}
+            alt="Report illustration"
+            fluid
+            className={styles.sideImageFull}
+          />
+        </Col>
 
-          {/* Form Card */}
-          <Col xs={12} md={6}>
-            <Card className={styles.card}>
+        {/* Right Column (Form Card) */}
+        <Col xs={12} md={6} className={styles.equalHeightCol}>
+          <Card className={`${styles.card} h-100`}>
               <h3 className="mb-4 text-center">📣 Report an Issue</h3>
               {error && <Alert variant="danger">{error}</Alert>}
 
