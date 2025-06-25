@@ -1,6 +1,9 @@
 // src/pages/ReportFormPage.jsx
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Map, { Marker } from 'react-map-gl';
+import mapboxgl from 'mapbox-gl';
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import styles from './ReportFormPage.module.css';
 import { useNavigate } from 'react-router-dom';
@@ -16,8 +19,6 @@ import {
   Col
 } from 'react-bootstrap';
 import { submitReport } from '../../services/reportService';
-
-// your illustration — put it in src/assets and adjust path if needed
 import illustration from '/report-illustration.png';
 
 const ISSUE_TYPES = ['Pothole', 'Streetlight', 'Graffiti', 'Other'];
@@ -32,9 +33,64 @@ export default function ReportFormPage() {
   const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [viewState, setViewState] = useState({
+    latitude: 43.65,
+    longitude: -79.38,
+    zoom: 11
+  });
+  const mapRef = useRef();
   const navigate = useNavigate();
 
-  function handleImageChange(e) {
+  // Get current location on mount
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setMarker({ lat: latitude, lng: longitude });
+        setViewState((v) => ({ ...v, latitude, longitude, zoom: 14 }));
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+      },
+      { enableHighAccuracy: true }
+    );
+  }, []);
+
+  // Attach Geocoder after map loads
+  const handleMapLoad = () => {
+    if (!mapRef.current) return;
+
+    const map = mapRef.current.getMap();
+
+    // Avoid duplicate control
+    if (map._controls.find((ctrl) => ctrl instanceof MapboxGeocoder)) return;
+
+    const geocoder = new MapboxGeocoder({
+      accessToken: MAPBOX_TOKEN,
+      mapboxgl,
+      marker: false
+    });
+
+    map.addControl(geocoder, 'top-left');
+
+    geocoder.on('result', (e) => {
+      const coords = e.result.geometry.coordinates;
+      setMarker({ lat: coords[1], lng: coords[0] });
+      setViewState((v) => ({
+        ...v,
+        latitude: coords[1],
+        longitude: coords[0],
+        zoom: 14
+      }));
+    });
+  };
+
+  // Cleanup previews
+  useEffect(() => {
+    return () => previews.forEach((url) => URL.revokeObjectURL(url));
+  }, [previews]);
+
+  const handleImageChange = (e) => {
     const files = Array.from(e.target.files).slice(0, 5);
     const valid = [];
     const urls = [];
@@ -53,23 +109,17 @@ export default function ReportFormPage() {
     setImages(valid);
     setPreviews(urls);
     setError('');
-  }
+  };
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setError('');
-    if (!selectedIssue) {
-      setError('Select an issue type');
-      return;
-    }
-    if (!marker) {
-      setError('Pick a location');
-      return;
-    }
-    if (!description.trim()) {
-      setError('Enter a description');
-      return;
-    }
+    if (!selectedIssue) return setError('Select an issue type');
+    if (!marker) return setError('Pick a location');
+    if (!description.trim()) return setError('Enter a description');
+    if (images.length === 0) return setError('Please upload at least one image');
 
     const formData = new FormData();
     formData.append('issueType', selectedIssue);
@@ -81,31 +131,27 @@ export default function ReportFormPage() {
     try {
       setLoading(true);
       await submitReport(formData);
-      alert('Thank you for reporting! A confirmation email has been sent.')
+      alert('Thank you for reporting! A confirmation email has been sent.');
       navigate('/dashboard');
     } catch (err) {
-      setError(
-        err.response?.data?.msg ||
-        err.message ||
-        'Submission failed'
-      );
+      setError(err.response?.data?.msg || err.message || 'Submission failed');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <div className={styles.wrapper}>
       <Container>
-        <Row className="align-items-start gy-4">
+        <Row className="align-items-start gx-2 gy-4">
           {/* Illustration */}
           <Col xs={12} md={6}>
-          <Image
-            src={illustration}
-            alt="Report illustration"
-            fluid
-            className={styles.sideImage}
-          />
+            <Image
+              src={illustration}
+              alt="Report illustration"
+              fluid
+              className={styles.sideImage}
+            />
           </Col>
 
           {/* Form Card */}
@@ -140,16 +186,15 @@ export default function ReportFormPage() {
                   </div>
                 </Form.Group>
 
-                {/* Location Picker */}
+                {/* Map Picker */}
                 <Form.Group className="mb-4">
                   <Form.Label>Select Location *</Form.Label>
                   <div className={styles.mapContainer}>
                     <Map
-                      initialViewState={{
-                        latitude: 43.65,
-                        longitude: -79.38,
-                        zoom: 11
-                      }}
+                      ref={mapRef}
+                      {...viewState}
+                      onMove={(evt) => setViewState(evt.viewState)}
+                      onLoad={handleMapLoad}
                       style={{ width: '100%', height: '100%' }}
                       mapStyle="mapbox://styles/mapbox/streets-v11"
                       mapboxAccessToken={MAPBOX_TOKEN}
@@ -196,11 +241,9 @@ export default function ReportFormPage() {
                   </small>
                 </Form.Group>
 
-                {/* Image Upload */}
+                {/* Images */}
                 <Form.Group className="mb-4">
-                  <Form.Label>
-                    Upload Images (up to 5, max 5MB each)
-                  </Form.Label>
+                  <Form.Label>Upload Images (up to 5, max 5MB each)</Form.Label>
                   <Form.Control
                     type="file"
                     multiple
@@ -226,11 +269,7 @@ export default function ReportFormPage() {
 
                 {/* Submit */}
                 <div className="d-grid">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={loading}
-                  >
+                  <Button type="submit" variant="primary" disabled={loading}>
                     {loading ? (
                       <Spinner animation="border" size="sm" />
                     ) : (

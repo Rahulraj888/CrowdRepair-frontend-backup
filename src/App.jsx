@@ -22,6 +22,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import MyReportsPage from './pages/MyReportsPage.jsx/MyReportsPage';
 import EditReportPage from './pages/EditReportPage/EditReportPage';
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 
 function App() {
   const { pathname } = useLocation();
