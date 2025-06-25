@@ -21,6 +21,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage/ChangePasswordPage';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import MyReportsPage from './pages/MyReportsPage.jsx/MyReportsPage';
+import EditReportPage from './pages/EditReportPage/EditReportPage';
 
 function App() {
   const { pathname } = useLocation();
@@ -97,6 +98,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyReportsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/report/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditReportPage/>
                 </ProtectedRoute>
               }
             />

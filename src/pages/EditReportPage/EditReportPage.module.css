@@ -1,0 +1,40 @@
+.wrapper {
+    background-color: #f7f9fc;
+    padding: 0.5rem 0;
+  }
+  
+  .card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    width: 100%;
+  }
+  
+  .issueTypeGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .mapContainer {
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+    margin-top: 0.5rem;
+  }
+  
+  /* preview grid */
+  .previewImage {
+    margin-top: 0.75rem;
+  }
+  
+  /* The left illustration */
+  .sideImage {
+    width: 100%;
+    border-radius: 1rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+    object-fit: cover;
+  }
+  
