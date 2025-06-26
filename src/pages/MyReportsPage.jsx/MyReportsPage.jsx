@@ -1,4 +1,6 @@
-import { useState, useEffect, useContext } from "react";
+// src/pages/MyReportsPage/MyReportsPage.jsx
+
+import { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Container,
@@ -11,12 +13,13 @@ import {
   ListGroup,
   Form,
   Button,
+  Alert,
 } from "react-bootstrap";
 import { AuthContext } from "../../context/AuthContext";
-import {
-  getReports,
-  deleteReport,
-} from "../../services/reportService";
+import { getReports, deleteReport } from "../../services/reportService";
+
+// Banner asset
+import bannerImg from "/my-reports.png";
 
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -25,57 +28,64 @@ export default function MyReportsPage() {
   const userId = user?._id;
   const navigate = useNavigate();
 
-  const [myReports, setMyReports]     = useState([]);
-  const [loading, setLoading]         = useState(true);
+  const [myReports, setMyReports] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter]     = useState("all");
-  const [sortOrder, setSortOrder]       = useState("desc"); // 'desc' = newest first
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [error, setError] = useState("");
+  const [deletingIds, setDeletingIds] = useState(new Set());
 
-  // Load all of the user's reports once
   useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
+    if (!userId) return setLoading(false);
     (async () => {
       try {
         const all = await getReports({ status: "all", type: "all" });
         setMyReports(all.filter((r) => r.user === userId));
       } catch (err) {
-        console.error("Error loading your reports:", err);
+        console.error(err);
+        setError("Failed to load reports.");
       } finally {
         setLoading(false);
       }
     })();
   }, [userId]);
 
-  // Delete handler (only for pending)
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this report?")) return;
+    setError("");
+    setDeletingIds((s) => new Set(s).add(id));
     try {
       await deleteReport(id);
       setMyReports((prev) => prev.filter((r) => r._id !== id));
     } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Failed to delete.");
+      console.error(err);
+      setError("Delete failed.");
+    } finally {
+      setDeletingIds((s) => {
+        const next = new Set(s);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
-  // Apply filters + sort
-  const displayed = myReports
-    .filter((r) =>
-      statusFilter === "all" ? true : r.status === statusFilter
-    )
-    .filter((r) =>
-      typeFilter === "all" ? true : r.issueType === typeFilter
-    )
-    .sort((a, b) => {
-      const da = new Date(a.createdAt),
-            db = new Date(b.createdAt);
-      return sortOrder === "asc" ? da - db : db - da;
-    });
+  const getStatusVariant = (status) =>
+    ({ Fixed: "success", "In Progress": "warning", Rejected: "danger" }[status] ||
+      "secondary");
 
-  const formatIssueId = (i) => `CR-${String(i + 1).padStart(3, "0")}`;
+  const displayed = useMemo(() => {
+    return myReports
+      .filter((r) => (statusFilter === "all" ? true : r.status === statusFilter))
+      .filter((r) => (typeFilter === "all" ? true : r.issueType === typeFilter))
+      .sort((a, b) => {
+        const da = new Date(a.createdAt),
+          db = new Date(b.createdAt);
+        return sortOrder === "asc" ? da - db : db - da;
+      });
+  }, [myReports, statusFilter, typeFilter, sortOrder]);
+
+  const formatIssueId = (idx) => `CR-${String(idx + 1).padStart(3, "0")}`;
 
   if (loading) {
     return (
@@ -89,7 +99,37 @@ export default function MyReportsPage() {
     <Container fluid className="py-4">
       <h2>My Reports</h2>
 
-      {/* Filters + Sort */}
+      {/* —— Constrained Banner —— */}
+      <div
+        className="mb-4 rounded"
+        style={{
+          width: "100%",
+          // maxHeight: "450px",
+          height:"100%",
+          overflow: "hidden",
+          backgroundColor: "#f5f5f5",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Image
+          src={bannerImg}
+          alt="Thank you for reporting"
+          style={{
+            width: "auto",
+            height: "100%",
+            objectFit: "contain",
+          }}
+        />
+      </div>
+
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+
       <Row className="mb-3 gx-2">
         <Col xs={12} md={4}>
           <Form.Select
@@ -126,146 +166,177 @@ export default function MyReportsPage() {
         </Col>
       </Row>
 
-      {displayed.length === 0 && <p>No reports to show.</p>}
-
-      {/* Desktop Table */}
-      <div className="d-none d-md-block">
-        <Table hover responsive>
-          <thead>
-            <tr>
-              <th>Issue ID</th>
-              <th>Image</th>
-              <th>Type</th>
-              <th>Description</th>
-              <th>Location</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayed.map((r, i) => (
-              <tr key={r._id}>
-                <td>{formatIssueId(i)}</td>
-                <td>
-                  {r.imageUrls?.[0] ? (
-                    <Image
-                      src={`${BACKEND}${r.imageUrls[0]}`}
-                      thumbnail
-                      style={{ width: 80, height: 60, objectFit: "cover" }}
-                    />
-                  ) : "–"}
-                </td>
-                <td>{r.issueType}</td>
-                <td style={{
-                    maxWidth: 200,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
-                  }}>
-                  {r.description}
-                </td>
-                <td>
-                  {r.location.coordinates
-                    ? `${r.location.coordinates[1].toFixed(4)}, ${r.location.coordinates[0].toFixed(4)}`
-                    : "–"}
-                </td>
-                <td>{new Date(r.createdAt).toLocaleDateString()}</td>
-                <td>
-                  <Badge bg={
-                    r.status === "Fixed" ? "success" :
-                    r.status === "In Progress" ? "warning" :
-                    r.status === "Rejected" ? "danger" :
-                    "secondary"
-                  }>
-                    {r.status}
-                  </Badge>
-                </td>
-                <td>
-                  {r.status === "Pending" && (
-                    <Button
-                      size="sm"
-                      variant="outline-primary"
-                      className="me-2"
-                      onClick={() => navigate(`/report/${r._id}/edit`)}
+      {displayed.length === 0 ? (
+        <div className="text-center my-5">
+          <p className="lead">You haven’t submitted any reports yet.</p>
+          <Button onClick={() => navigate("/report/new")}>
+            Submit Your First Report
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="d-none d-md-block">
+            <Table hover responsive>
+              <thead>
+                <tr>
+                  <th>Issue ID</th>
+                  <th>Image</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Location</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayed.map((r, idx) => (
+                  <tr key={r._id}>
+                    <td>{formatIssueId(idx)}</td>
+                    <td>
+                      {r.imageUrls?.[0] ? (
+                        <Image
+                          src={`${BACKEND}${r.imageUrls[0]}`}
+                          alt={`Photo of ${r.issueType} — ${formatIssueId(idx)}`}
+                          thumbnail
+                          style={{
+                            width: 80,
+                            height: 60,
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        "–"
+                      )}
+                    </td>
+                    <td>{r.issueType}</td>
+                    <td
+                      style={{
+                        maxWidth: 200,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
                     >
-                      Edit
-                    </Button>
-                  )}
-                  {r.status === "Pending" && (
-                    <Button
-                      size="sm"
-                      variant="outline-danger"
-                      onClick={() => handleDelete(r._id)}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </div>
+                      {r.description}
+                    </td>
+                    <td>
+                      {r.location.coordinates
+                        ? `${r.location.coordinates[1].toFixed(4)}, ${
+                            r.location.coordinates[0].toFixed(4)
+                          }`
+                        : "–"}
+                    </td>
+                    <td>{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <Badge bg={getStatusVariant(r.status)}>
+                        {r.status}
+                      </Badge>
+                    </td>
+                    <td>
+                      {r.status === "Pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline-primary"
+                            className="me-2"
+                            onClick={() => navigate(`/report/${r._id}/edit`)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline-danger"
+                            disabled={deletingIds.has(r._id)}
+                            onClick={() => handleDelete(r._id)}
+                          >
+                            {deletingIds.has(r._id) ? (
+                              <Spinner as="span" size="sm" />
+                            ) : (
+                              "Delete"
+                            )}
+                          </Button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
 
-      {/* Mobile Card List */}
-      <div className="d-block d-md-none">
-        <ListGroup variant="flush">
-          {displayed.map((r, i) => (
-            <ListGroup.Item key={r._id} className="py-3">
-              <Row>
-                <Col xs={4}>
-                  {r.imageUrls?.[0] && (
-                    <Image
-                      src={`${BACKEND}${r.imageUrls[0]}`}
-                      thumbnail
-                      style={{ width: "100%", height: 100, objectFit: "cover" }}
-                    />
-                  )}
-                </Col>
-                <Col xs={8}>
-                  <div className="d-flex justify-content-between">
-                    <strong>{formatIssueId(i)}</strong>
-                    <Badge bg={
-                      r.status === "Fixed" ? "success" :
-                      r.status === "In Progress" ? "warning" :
-                      r.status === "Rejected" ? "danger" :
-                      "secondary"
-                    }>
-                      {r.status}
-                    </Badge>
-                  </div>
-                  <div className="mt-1"><strong>{r.issueType}</strong></div>
-                  <div className="small text-truncate">{r.description}</div>
-                  <div className="text-muted small mt-1">
-                    {new Date(r.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="mt-2 d-flex gap-2">
-                    {r.status === "Pending" && (
-                      <Button
-                        size="sm"
-                        variant="outline-primary"
-                        onClick={() => navigate(`/report/${r._id}/edit`)}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                    {r.status === "Pending" && (
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => handleDelete(r._id)}
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </div>
-                </Col>
-              </Row>
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
-      </div>
+          <div className="d-block d-md-none">
+            <ListGroup variant="flush">
+              {displayed.map((r, idx) => (
+                <ListGroup.Item key={r._id} className="py-3">
+                  <Row>
+                    <Col xs={4}>
+                      {r.imageUrls?.[0] && (
+                        <Image
+                          src={`${BACKEND}${r.imageUrls[0]}`}
+                          alt={`Photo of ${r.issueType} — ${formatIssueId(
+                            idx
+                          )}`}
+                          thumbnail
+                          style={{
+                            width: "100%",
+                            height: 100,
+                            objectFit: "cover",
+                          }}
+                        />
+                      )}
+                    </Col>
+                    <Col xs={8}>
+                      <div className="d-flex justify-content-between">
+                        <strong>{formatIssueId(idx)}</strong>
+                        <Badge bg={getStatusVariant(r.status)}>
+                          {r.status}
+                        </Badge>
+                      </div>
+                      <div className="mt-1">
+                        <strong>{r.issueType}</strong>
+                      </div>
+                      <div className="small text-truncate">
+                        {r.description}
+                      </div>
+                      <div className="text-muted small mt-1">
+                        {new Date(r.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="mt-2 d-flex gap-2">
+                        {r.status === "Pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline-primary"
+                              onClick={() =>
+                                navigate(`/report/${r._id}/edit`)
+                              }
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              disabled={deletingIds.has(r._id)}
+                              onClick={() => handleDelete(r._id)}
+                            >
+                              {deletingIds.has(r._id) ? (
+                                <Spinner as="span" size="sm" />
+                              ) : (
+                                "Delete"
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </Col>
+                  </Row>
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
+          </div>
+        </>
+      )}
     </Container>
   );
 }
