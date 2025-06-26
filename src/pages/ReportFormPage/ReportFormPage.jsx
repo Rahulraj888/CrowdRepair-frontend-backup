@@ -90,26 +90,55 @@ export default function ReportFormPage() {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
   }, [previews]);
 
+
+
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files).slice(0, 5);
-    const valid = [];
-    const urls = [];
-    for (let file of files) {
-      if (!file.type.startsWith('image/')) {
-        setError('Only image files allowed');
-        continue;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Each image must be <5MB');
-        continue;
-      }
-      valid.push(file);
-      urls.push(URL.createObjectURL(file));
+  const files = Array.from(e.target.files);
+  const MAX_FILES = 5;
+  // Check if selection exceeds limit
+  if (files.length > MAX_FILES) {
+    setError(`You can upload a maximum of ${MAX_FILES} images at a time.`);
+    setImages([]);       // optional: clear any existing images
+    setPreviews([]);     // optional: clear previews
+    return;
+  }
+  const valid = [];
+  const urls = [];
+  let errorMessages = [];
+
+  files.forEach((file) => {
+    
+    if (!file.type.startsWith('image/')) {
+      errorMessages.push(
+        `"${file.name}" is not a valid image file.`
+      );
+      return;
     }
-    setImages(valid);
-    setPreviews(urls);
+
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > 5) {
+      errorMessages.push(
+        `"${file.name}" is too large (${sizeInMB.toFixed(2)} MB). Max allowed is 5 MB.`
+      );
+      return;
+    }
+
+    valid.push(file);
+    urls.push(URL.createObjectURL(file));
+  });
+
+  setImages(valid);
+  setPreviews(urls);
+
+  if (errorMessages.length > 0) {
+    setError(`Some files were not accepted:\n${errorMessages.join('\n')}`);
+  } else {
     setError('');
-  };
+  }
+};
+
+  
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,6 +149,7 @@ export default function ReportFormPage() {
     if (!marker) return setError('Pick a location');
     if (!description.trim()) return setError('Enter a description');
     if (images.length === 0) return setError('Please upload at least one image');
+
 
     const formData = new FormData();
     formData.append('issueType', selectedIssue);
