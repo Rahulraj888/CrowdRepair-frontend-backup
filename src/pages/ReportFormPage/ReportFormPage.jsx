@@ -33,6 +33,7 @@ export default function ReportFormPage() {
   const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fullAddress, setFullAddress] = useState(''); //to get the full address
   const [viewState, setViewState] = useState({
     latitude: 43.65,
     longitude: -79.38,
@@ -41,6 +42,25 @@ export default function ReportFormPage() {
   const mapRef = useRef();
   const navigate = useNavigate();
 
+//create a fu8nction for reverse geo-coding and return the full address based on geo coordinates 
+const getAddressFromCoordinates = async (lat, lng) => {
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`
+    );
+    const data = await response.json();
+    if (data?.features?.length > 0) {
+      setFullAddress(data.features[0].place_name);
+    } else {
+      setFullAddress('Unable to retrieve address');
+    }
+  } catch (error) {
+    console.error('Error fetching address:', error);
+    setFullAddress('Error retrieving address');
+  }
+};
+
+
   // Get current location on mount
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -48,6 +68,7 @@ export default function ReportFormPage() {
         const { latitude, longitude } = pos.coords;
         setMarker({ lat: latitude, lng: longitude });
         setViewState((v) => ({ ...v, latitude, longitude, zoom: 14 }));
+        getAddressFromCoordinates(latitude, longitude); //fetch the whole address
       },
       (err) => {
         console.warn('Geolocation error:', err);
@@ -82,6 +103,8 @@ export default function ReportFormPage() {
         longitude: coords[0],
         zoom: 14
       }));
+      getAddressFromCoordinates(coords[1], coords[0]); // fetch the whole address and store it as a state 
+
     });
   };
 
@@ -157,6 +180,7 @@ export default function ReportFormPage() {
     formData.append('longitude', marker.lng);
     formData.append('description', description);
     images.forEach((img) => formData.append('images', img));
+    formData.append('address', fullAddress);
 
     try {
       setLoading(true);
@@ -231,6 +255,7 @@ export default function ReportFormPage() {
                       onClick={(e) => {
                         const { lat, lng } = e.lngLat;
                         setMarker({ lat, lng });
+                       getAddressFromCoordinates(lat, lng); //fetching the address based on the coordinations
                         setError('');
                       }}
                     >
@@ -247,8 +272,13 @@ export default function ReportFormPage() {
                     <small className="text-muted d-block mt-1">
                       Selected: ({marker.lat.toFixed(5)}, {marker.lng.toFixed(5)})
                     </small>
-                  )}
-                </Form.Group>
+                  )} 
+                  {fullAddress && (
+               <small className="text-muted d-block mt-1">
+              📍 {fullAddress}
+                </small>
+)}  
+ </Form.Group>
 
                 {/* Description */}
                 <Form.Group className="mb-4">
