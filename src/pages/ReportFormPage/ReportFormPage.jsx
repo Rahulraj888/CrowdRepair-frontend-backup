@@ -1,4 +1,3 @@
-// src/pages/ReportFormPage.jsx
 import { useEffect, useRef, useState } from 'react';
 import Map, { Marker } from 'react-map-gl';
 import mapboxgl from 'mapbox-gl';
@@ -42,7 +41,7 @@ export default function ReportFormPage() {
   const mapRef = useRef();
   const navigate = useNavigate();
 
-//create a fu8nction for reverse geo-coding and return the full address based on geo coordinates 
+//function for reverse geo-coding and return the full address based on geo coordinates 
 const getAddressFromCoordinates = async (lat, lng) => {
   try {
     const response = await fetch(
@@ -159,9 +158,6 @@ const getAddressFromCoordinates = async (lat, lng) => {
     setError('');
   }
 };
-
-  
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
