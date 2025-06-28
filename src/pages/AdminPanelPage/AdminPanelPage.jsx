@@ -170,13 +170,14 @@ export default function AdminPanelPage() {
           <thead>
             <tr>
               <th>Issue ID</th>
-              <th>Image</th>
+              <th>Images</th>
               <th>Type</th>
               <th>Description</th>
               <th>Location</th>
               <th>Reporter</th>
               <th>Date</th>
               <th>Status</th>
+              <th>Reason</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -185,12 +186,21 @@ export default function AdminPanelPage() {
               <tr key={r._id}>
                 <td className={styles.wrapCell}>{r._id}</td>
                 <td>
-                  {r.imageUrls?.[0] ? (
-                    <Image
-                      src={`${BACKEND}${r.imageUrls[0]}`}
-                      thumbnail
-                      style={{ width: 80, height: 60, objectFit: 'cover' }}
-                    />
+                  {r.imageUrls && r.imageUrls.length > 0 ? (
+                    r.imageUrls.map((url, idx) => (
+                      <Image
+                        key={idx}
+                        src={`${BACKEND}${url}`}
+                        className={styles.thumbnail}
+                        thumbnail
+                        style={{
+                          width: 50,
+                          height: 50,
+                          objectFit: 'cover',
+                          marginRight: '4px'
+                        }}
+                      />
+                    ))
                   ) : '—'}
                 </td>
                 <td>{r.issueType}</td>
@@ -199,9 +209,10 @@ export default function AdminPanelPage() {
                 <td>{r.user.name}</td>
                 <td>{new Date(r.createdAt).toLocaleDateString()}</td>
                 <td>
-                  <Badge bg={getStatusVariant(r.status)}>
-                    {r.status}
-                  </Badge>
+                  <Badge bg={getStatusVariant(r.status)}>{r.status}</Badge>
+                </td>
+                <td className={styles.wrapCell}>
+                  {r.status === 'Rejected' ? r.rejectReason : '—'}
                 </td>
                 <td>
                   <Form.Select
@@ -276,11 +287,7 @@ export default function AdminPanelPage() {
       </Row>
 
       {/* Rejection Reason Modal */}
-      <Modal
-        show={showRejectModal}
-        onHide={() => setShowRejectModal(false)}
-        centered
-      >
+      <Modal show={showRejectModal} onHide={() => setShowRejectModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Rejection Reason</Modal.Title>
         </Modal.Header>
