@@ -13,6 +13,6 @@ export function listReports({ status, type, page, limit }) {
 }
 
 // Update report status
-export function updateReportStatus(id, status) {
-  return api.patch(`/admin/reports/${id}/status`, { status }).then(res => res.data);
+export function updateReportStatus(id, status, rejectReason) {
+  return api.patch(`/admin/reports/${id}/status`, { status, rejectReason }).then(res => res.data);
 }

@@ -17,6 +17,8 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import { getReports, deleteReport } from "../../services/reportService";
 import styles from "./MyReportsPage.module.css";
+import "../../index.css";
+import "../../App.css";
 
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -107,22 +109,29 @@ export default function MyReportsPage() {
         <Col xs={12} md={4}>
           <Dropdown as={ButtonGroup} className="w-100">
             <Dropdown.Toggle
-              variant="outline-secondary"
-              className="w-100 text-start"
+              variant="light"
+              className="w-100 text-start border"
               id="status-dropdown"
             >
               {statusFilter === "all" ? "All Statuses" : statusFilter}
             </Dropdown.Toggle>
-            <Dropdown.Menu className="w-100">
-              {["all", "Pending", "In Progress", "Fixed", "Rejected"].map(s => (
-                <Dropdown.Item
-                  key={s}
-                  active={s === statusFilter}
-                  onClick={() => setStatusFilter(s)}
-                >
-                  {s === "all" ? "All Statuses" : s}
-                </Dropdown.Item>
-              ))}
+            <Dropdown.Menu className="w-100" menuVariant="light">
+              {["all", "Pending", "In Progress", "Fixed", "Rejected"].map(s => {
+                const isActive = s === statusFilter;
+                return (
+                  <Dropdown.Item
+                    key={s}
+                    active={isActive}
+                    onClick={() => setStatusFilter(s)}
+                    style={{
+                      backgroundColor: isActive ? "#e9ecef" : undefined,
+                      color:            isActive ? "#000"    : undefined
+                    }}
+                  >
+                    {s === "all" ? "All Statuses" : s}
+                  </Dropdown.Item>
+                );
+              })}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
@@ -131,22 +140,29 @@ export default function MyReportsPage() {
         <Col xs={12} md={4}>
           <Dropdown as={ButtonGroup} className="w-100">
             <Dropdown.Toggle
-              variant="outline-secondary"
-              className="w-100 text-start"
+              variant="light"
+              className="w-100 text-start border"
               id="type-dropdown"
             >
               {typeFilter === "all" ? "All Types" : typeFilter}
             </Dropdown.Toggle>
-            <Dropdown.Menu className="w-100">
-              {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map(t => (
-                <Dropdown.Item
-                  key={t}
-                  active={t === typeFilter}
-                  onClick={() => setTypeFilter(t)}
-                >
-                  {t === "all" ? "All Types" : t}
-                </Dropdown.Item>
-              ))}
+            <Dropdown.Menu className="w-100" menuVariant="light">
+              {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map(t => {
+                const isActive = t === typeFilter;
+                return (
+                  <Dropdown.Item
+                    key={t}
+                    active={isActive}
+                    onClick={() => setTypeFilter(t)}
+                    style={{
+                      backgroundColor: isActive ? "#e9ecef" : undefined,
+                      color:            isActive ? "#000"    : undefined
+                    }}
+                  >
+                    {t === "all" ? "All Types" : t}
+                  </Dropdown.Item>
+                );
+              })}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
@@ -155,25 +171,32 @@ export default function MyReportsPage() {
         <Col xs={12} md={4}>
           <Dropdown as={ButtonGroup} className="w-100">
             <Dropdown.Toggle
-              variant="outline-secondary"
-              className="w-100 text-start"
+              variant="light"
+              className="w-100 text-start border"
               id="sort-dropdown"
             >
               {sortOrder === "desc" ? "Newest First" : "Oldest First"}
             </Dropdown.Toggle>
-            <Dropdown.Menu className="w-100">
-              <Dropdown.Item
-                active={sortOrder === "desc"}
-                onClick={() => setSortOrder("desc")}
-              >
-                Newest First
-              </Dropdown.Item>
-              <Dropdown.Item
-                active={sortOrder === "asc"}
-                onClick={() => setSortOrder("asc")}
-              >
-                Oldest First
-              </Dropdown.Item>
+            <Dropdown.Menu className="w-100" menuVariant="light">
+              {[
+                { label: "Newest First", value: "desc" },
+                { label: "Oldest First", value: "asc" },
+              ].map(({ label, value }) => {
+                const isActive = sortOrder === value;
+                return (
+                  <Dropdown.Item
+                    key={value}
+                    active={isActive}
+                    onClick={() => setSortOrder(value)}
+                    style={{
+                      backgroundColor: isActive ? "#e9ecef" : undefined,
+                      color:            isActive ? "#000"    : undefined
+                    }}
+                  >
+                    {label}
+                  </Dropdown.Item>
+                );
+              })}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
@@ -200,6 +223,7 @@ export default function MyReportsPage() {
               <th>Location</th>
               <th>Date</th>
               <th>Status</th>
+              <th>Reject Reason</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -215,9 +239,7 @@ export default function MyReportsPage() {
                       thumbnail
                       style={{ width: 80, height: 60, objectFit: "cover" }}
                     />
-                  ) : (
-                    "–"
-                  )}
+                  ) : "–"}
                 </td>
                 <td>{r.issueType}</td>
                 <td className={styles.wrapCell}>{r.description}</td>
@@ -227,6 +249,9 @@ export default function MyReportsPage() {
                   <Badge bg={getStatusVariant(r.status)}>
                     {r.status}
                   </Badge>
+                </td>
+                <td className={styles.wrapCell}>
+                  {r.status === "Rejected" ? r.rejectReason : "—"}
                 </td>
                 <td>
                   {r.status === "Pending" && (
@@ -296,6 +321,11 @@ export default function MyReportsPage() {
                   <div className={`small mt-1 ${styles.twoLineCell}`}>
                     📍 {r.address}
                   </div>
+                  {r.status === "Rejected" && (
+                    <div className="small text-danger mt-1">
+                      <strong>Reason:</strong> {r.rejectReason}
+                    </div>
+                  )}
                   <div className="text-muted small mt-1">
                     {new Date(r.createdAt).toLocaleDateString()}
                   </div>
