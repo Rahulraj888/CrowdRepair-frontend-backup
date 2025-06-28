@@ -13,7 +13,9 @@ export default function Header() {
 
   return (
     <header className="shadow-sm mb-0 pb-0">
-      <nav className="navbar navbar-expand-lg navbar-light bg-white px-3 py-2">
+      <nav className="navbar navbar-expand-lg navbar-light px-3 py-2"
+      style={{ backgroundColor: '#75CFF0' }}
+      >
         <div className="container-fluid">
           {/* Logo */}
           <Link className="navbar-brand d-flex align-items-center" to="/">
@@ -22,7 +24,7 @@ export default function Header() {
               alt="Logo"
               style={{ height: '30px', marginRight: '10px' }}
             />
-            <span className="fw-bold text-primary">Mobile Appz</span>
+            <span className="fw-bold">Mobile Appz</span>
           </Link>
 
           {/* Hamburger toggler */}
@@ -45,12 +47,12 @@ export default function Header() {
               {!user ? (
                 <>
                   <li className="nav-item">
-                    <Link className="nav-link" to="/login">
+                    <Link className="nav-link fw-bold" to="/login">
                       Login
                     </Link>
                   </li>
                   <li className="nav-item ms-3">
-                    <Link className="btn btn-primary px-4" to="/register">
+                    <Link className="btn btn-primary fw-bold px-4" to="/register">
                       Sign Up
                     </Link>
                   </li>
@@ -58,44 +60,44 @@ export default function Header() {
               ) : (
                 <>
                   <li className="nav-item">
-                    <Link className="nav-link" to="/dashboard">
+                    <Link className="nav-link fw-bold" to="/dashboard">
                       Dashboard
                     </Link>
                   </li>
                   <li className="nav-item">
-                    <Link className="nav-link" to="/heatmap">
+                    <Link className="nav-link fw-bold" to="/heatmap">
                       Heatmap
                     </Link>
                   </li>
                   {user.role !== 'admin' && (
                     <li className="nav-item">
-                      <Link className="nav-link" to="/report">
+                      <Link className="nav-link fw-bold" to="/report">
                         New Report
                       </Link>
                     </li>
                   )}
                   {user.role === 'admin' && (
                     <li className="nav-item">
-                      <Link className="nav-link" to="/admin">
+                      <Link className="nav-link fw-bold" to="/admin">
                         Admin Panel
                       </Link>
                     </li>
                   )}
                   <li className="nav-item">
-                    <Link className="nav-link" to="/profile">
+                    <Link className="nav-link fw-bold" to="/profile">
                       My Profile
                     </Link>
                   </li>
                   {user.role !== 'admin' && (
                     <li className="nav-item">
-                      <Link className="nav-link" to="/my-reports">
+                      <Link className="nav-link fw-bold" to="/my-reports">
                         My Reports
                       </Link>
                     </li>
                   )}
                   <li className="nav-item ms-3">
                     <button
-                      className="btn btn-outline-secondary"
+                      className="btn btn-outline-secondary fw-bold"
                       onClick={logout}
                     >
                       Logout
