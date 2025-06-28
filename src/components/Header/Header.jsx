@@ -13,7 +13,7 @@ export default function Header() {
 
   return (
     <header className="shadow-sm mb-0 pb-0">
-      <nav className="navbar navbar-expand-lg navbar-light bg-white px-3 py-2">
+      <nav className="navbar navbar-expand-lg navbar-light px-3 py-2">
         <div className="container-fluid">
           {/* Logo */}
           <Link className="navbar-brand d-flex align-items-center" to="/">

@@ -1,0 +1,5 @@
+.wrapCell {
+    max-width: 200px;
+    white-space: normal;
+    word-break: break-word;
+}
