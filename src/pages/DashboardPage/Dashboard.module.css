@@ -1,0 +1,52 @@
+.reportCard {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  transition: box-shadow 0.2s ease-in-out;
+}
+.reportCard:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.roundedBox {
+  border-radius: 10px !important;
+}
+
+.statusBadge {
+  background-color: #e6f0ff;
+  color: #0056b3;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.btnPost {
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.btnPost:hover {
+  background-color: #0d6efd;
+  color: white;
+  transform: scale(1.02);
+}
+
+.legendBox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+}
+
+/* Dark mode support */
+:global(body.dark) {
+  background-color: #121212;
+  color: #f0f0f0;
+}
+
+:global(.dark .card),
+:global(.dark .list-group-item) {
+  background-color: #1e1e1e;
+  color: #f0f0f0;
+  border-color: #333;
+}

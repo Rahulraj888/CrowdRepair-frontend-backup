@@ -1,4 +1,6 @@
 import { useContext, useState, useEffect } from "react";
+import { FaMapMarkerAlt } from 'react-icons/fa';
+import styles from "./Dashboard.module.css";
 import {
   Container,
   Row,
@@ -31,12 +33,61 @@ export default function DashboardPage() {
   const [typeFilter, setType] = useState("all");
   const [commentsById, setCommentsById] = useState({});
   const [newComment, setNewComment] = useState({});
+  const [userLocation, setUserLocation] = useState(null);  //user current location based on coordinates
+
   const [viewState, setViewState] = useState({
     latitude: 43.65,
     longitude: -79.38,
-    zoom: 12,
+    zoom: 13.5,
   });
+
+  useEffect(() => {                                              //get the currrent location of the user using predefined web browser api function
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setViewState((prev) => ({
+          ...prev,
+          latitude,
+          longitude,
+        }));
+          setUserLocation({ latitude, longitude }); 
+      },
+      (error) => {
+        console.warn("⚠️ Geolocation failed:", error);
+      }
+    );
+  } else {
+    console.warn("⚠️ Geolocation is not available in this browser.");
+  }
+}, []);
   const [popupInfo, setPopupInfo] = useState(null);
+
+  const statusColorMap = {
+  Pending: '#f39c12',      // orange
+  'In Progress': '#3498db',// blue
+  Fixed: '#2ecc71',        // green
+  Rejected: '#e74c3c'      // red
+};
+
+
+//helper function calculate distance of the report issue location with repsect to user location 
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const R = 6371; // Earth radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+
+
 
   // helper to format “2h ago” / “3d ago”
   function timeAgo(dateStr) {
@@ -120,6 +171,25 @@ export default function DashboardPage() {
     return (days / done.length).toFixed(1);
   })();
 
+
+  const sortedReports = [...reports]
+  .filter((r) => r.user !== user.id) // still hide your own
+  .sort((a, b) => {
+    if (!userLocation) return 0;
+    const distA = haversineDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      a.location.coordinates[1],
+      a.location.coordinates[0]
+    );
+    const distB = haversineDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      b.location.coordinates[1],
+      b.location.coordinates[0]
+    );
+    return distA - distB;
+  });
   return (
     <Container fluid className="py-4">
       <h2>Dashboard</h2>
@@ -127,25 +197,27 @@ export default function DashboardPage() {
       {/* Filters */}
       <Row className="mb-3">
         <Col xs={6}>
-          <Form.Select
+          <Form.Select  className={styles.roundedBox}
             value={statusFilter}
             onChange={(e) => setStatus(e.target.value)}
           >
+
             {["all", "Pending", "In Progress", "Fixed","Rejected"].map((s) => (
               <option key={s} value={s}>
-                {s}
+                  {s === "all" ? "Filter by status" : s}
               </option>
             ))}
           </Form.Select>
         </Col>
         <Col xs={6}>
-          <Form.Select
+          <Form.Select  className={styles.roundedBox}
             value={typeFilter}
             onChange={(e) => setType(e.target.value)}
           >
+   
             {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map((t) => (
               <option key={t} value={t}>
-                {t}
+                {t === "all" ? "Filter by Type" : t}
               </option>
             ))}
           </Form.Select>
@@ -155,7 +227,7 @@ export default function DashboardPage() {
       <Row>
         {/* Mapbox Map */}
         <Col lg={8} className="mb-4">
-          <Card>
+          <Card className={styles.roundedBox}>
             <Map
               {...viewState}
               style={{ width: "100%", height: 400, borderRadius: 8 }}
@@ -163,18 +235,46 @@ export default function DashboardPage() {
               mapboxAccessToken={MAPBOX_TOKEN}
               onMove={(evt) => setViewState(evt.viewState)}
             >
-              {reports
-                .filter((r) => r.user !== user.id)    /* hide your own */
-                .map((r) => (
-                  <Marker
-                    key={r._id}
-                    latitude={r.location.coordinates[1]}
-                    longitude={r.location.coordinates[0]}
-                    color="red"
-                    onClick={() => setPopupInfo(r)}
-                  />
-                ))}
-
+            
+   {userLocation && (
+  <Marker                                       //based on the user coordinates its show the user location marker that reperesnt current location of the user
+    longitude={userLocation.longitude}
+    latitude={userLocation.latitude}
+    anchor="bottom"
+  >
+    <svg
+      height="20"
+      viewBox="0 0 24 24"
+      style={{
+        fill: '#007bff',  // bright blue
+        stroke: '#fff',
+        strokeWidth: 2,
+        transform: 'translate(-12px, -24px)',
+        filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.3))',
+      }}
+    >
+      <circle cx="12" cy="12" r="8" />
+    </svg>
+  </Marker>
+)}
+    {sortedReports.map((r) => (
+  <Marker
+    key={r._id}
+    latitude={r.location.coordinates[1]}
+    longitude={r.location.coordinates[0]}
+    onClick={() => setPopupInfo(r)}
+  >
+    <FaMapMarkerAlt
+      size={34}
+      color={statusColorMap[r.status] || 'gray'}
+      style={{
+        filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))',
+        stroke: '#fff',
+        strokeWidth: '2px'
+      }}
+    />
+  </Marker>
+))}
               {popupInfo && (
                 <Popup
                   anchor="top"
@@ -202,6 +302,15 @@ export default function DashboardPage() {
                 <small>Avg. Resolution</small>
               </div>
             </Card.Body>
+            <Card.Footer className={styles.legendBox}>
+  {Object.entries(statusColorMap).map(([status, color]) => (
+    <span key={status} className="d-flex align-items-center gap-1">
+      <div style={{ width: 12, height: 12, borderRadius: '50%', background: color }} />
+      <small>{status}</small>
+    </span>
+  ))}
+</Card.Footer>
+
           </Card>
         </Col>
 
@@ -209,11 +318,11 @@ export default function DashboardPage() {
         <Col lg={4}>
           <h5>Recent Reports</h5>
           <ListGroup variant="flush">
-            {reports
-              .filter((r) => r.user !== user.id)   /* hide your own */
-              .slice(0, 6)
-              .map((r, idx) => (
-                <ListGroup.Item key={r._id} className="py-3">
+            {
+            sortedReports
+  .slice(0, 6)
+  .map((r, idx) => (
+                <ListGroup.Item key={r._id} className={`py-3 ${styles.reportCard}`}>
                   <div className="d-flex">
                     {r.imageUrls?.[0] && (
                       <Image
@@ -231,19 +340,8 @@ export default function DashboardPage() {
                             {timeAgo(r.createdAt)}
                           </div>
                         </div>
-                        <Badge
-                          bg={
-                            r.status === "Fixed"
-                              ? "success"
-                              : r.status === "In Progress"
-                              ? "warning"
-                              : r.status === "Rejected"
-                              ? "danger"
-                              : "secondary"
-                          }
-                        >
-                          {r.status}
-                        </Badge>
+                      <span className={styles.statusBadge}>{r.status}</span>
+
                       </div>
 
                       <p className="mt-1 mb-2 small">{r.description}</p>
@@ -287,6 +385,7 @@ export default function DashboardPage() {
                           }
                         />
                         <Button
+                        className={styles.btnPost}
                           variant="primary"
                           size="sm"
                           onClick={() => handleAddComment(r._id)}
