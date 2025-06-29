@@ -47,3 +47,7 @@ export async function addComment(reportId, text) {
   const { data } = await api.post(`/reports/${reportId}/comments`, { text });
   return data;
 }
+
+// existing exports…
+export const getHeatmap = () =>
+  api.get('/reports/heatmap').then(res => res.data);
