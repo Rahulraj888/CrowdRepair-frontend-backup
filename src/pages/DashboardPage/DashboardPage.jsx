@@ -1,4 +1,3 @@
-// src/pages/DashboardPage/DashboardPage.jsx
 import React, {
   useContext,
   useState,
@@ -27,7 +26,6 @@ import { AuthContext } from "../../context/AuthContext";
 import {
   getReports,
   upvoteReport,
-  getComments,
   addComment,
 } from "../../services/reportService";
 
@@ -54,9 +52,10 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
     Math.cos(toRad(lat1)) *
       Math.cos(toRad(lat2)) *
       Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(
-    Math.sqrt(a),
-    Math.sqrt(1 - a)
+  return (
+    R *
+    2 *
+    Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   );
 }
 
@@ -71,7 +70,7 @@ function timeAgo(dateStr) {
     : new Date(dateStr).toLocaleDateString();
 }
 
-// Fetch & filter
+// Fetch & filter reports
 function useReports(statusFilter, typeFilter) {
   const { user } = useContext(AuthContext);
   const [reports, setReports] = useState([]);
@@ -105,38 +104,27 @@ function useReports(statusFilter, typeFilter) {
   return { reports, loading, error, refetch: fetchReports };
 }
 
-// Fetch comments
-function useComments(reportId, commentCount) {
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetch = useCallback(async () => {
-    if (!commentCount) return;
-    setLoading(true);
-    const c = await getComments(reportId);
-    setComments(c);
-    setLoading(false);
-  }, [reportId, commentCount]);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  return { comments, loading };
-}
-
-// Top‐level stats panel
+// Stats panel
 function StatsPanel({ total, resolved, avgRes }) {
   return (
     <Card.Body className="d-flex justify-content-around text-center">
-      <div><h5>{total}</h5><small>Total Issues</small></div>
-      <div><h5>{resolved}</h5><small>Resolved</small></div>
-      <div><h5>{avgRes}d</h5><small>Avg. Resolution</small></div>
+      <div>
+        <h5>{total}</h5>
+        <small>Total Issues</small>
+      </div>
+      <div>
+        <h5>{resolved}</h5>
+        <small>Resolved</small>
+      </div>
+      <div>
+        <h5>{avgRes}d</h5>
+        <small>Avg. Resolution</small>
+      </div>
     </Card.Body>
   );
 }
 
-// List‐item + detail button
+// List-item + detail button
 function ReportListItem({
   report,
   idx,
@@ -144,16 +132,12 @@ function ReportListItem({
   onAddComment,
   userLocation,
 }) {
-  const { comments, loading: comLoading } = useComments(
-    report._id,
-    report.commentCount
-  );
+  const [showDetail, setShowDetail] = useState(false);
   const [newText, setNewText] = useState("");
   const [posting, setPosting] = useState(false);
-  const [showDetail, setShowDetail] = useState(false);
   const [address, setAddress] = useState(null);
 
-  // Reverse geocode
+  // reverse-geocode
   useEffect(() => {
     const [lng, lat] = report.location.coordinates;
     fetch(
@@ -184,9 +168,6 @@ function ReportListItem({
     setPosting(false);
   };
 
-  const badgeColor =
-    STATUS_COLORS[report.status] || "#6c757d";
-
   return (
     <>
       <ListGroup.Item className={`py-3 ${styles.reportCard}`}>
@@ -213,14 +194,16 @@ function ReportListItem({
               <p className="mt-1 small">
                 {report.description}
               </p>
-              <p className="mt-1 small">
-                {report.address}
-              </p>
+              {address && (
+                <p className="mt-1 small">{address}</p>
+              )}
             </div>
           </div>
           <span
             style={{
-              backgroundColor: badgeColor,
+              backgroundColor:
+                STATUS_COLORS[report.status] ||
+                "#6c757d",
               color: "#fff",
             }}
             className={styles.statusBadge}
@@ -286,7 +269,7 @@ export default function DashboardPage() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  // Get user position
+  // geolocation
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -305,7 +288,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Sort by distance
+  // sort by distance
   const sorted = useMemo(() => {
     if (!userLocation) return reports;
     return [...reports].sort((a, b) => {
@@ -425,16 +408,10 @@ export default function DashboardPage() {
           ) : (
             <Map
               {...viewState}
-              style={{
-                width: "100%",
-                height: 400,
-                borderRadius: 8,
-              }}
+              style={{ width: "100%", height: 400, borderRadius: 8 }}
               mapStyle="mapbox://styles/mapbox/streets-v11"
               mapboxAccessToken={MAPBOX_TOKEN}
-              onMove={(e) =>
-                setViewState(e.viewState)
-              }
+              onMove={(e) => setViewState(e.viewState)}
             >
               {userLocation && (
                 <Marker
@@ -480,17 +457,13 @@ export default function DashboardPage() {
               ))}
             </Map>
           )}
-          <Card
-            className={`mt-3 ${styles.roundedBox}`}
-          >
+          <Card className={`mt-3 ${styles.roundedBox}`}>
             <StatsPanel
               total={total}
               resolved={resolved}
               avgRes={avgRes}
             />
-            <Card.Footer
-              className={styles.legendBox}
-            >
+            <Card.Footer className={styles.legendBox}>
               {Object.entries(STATUS_COLORS).map(
                 ([st, c]) => (
                   <span
@@ -530,7 +503,6 @@ export default function DashboardPage() {
         </Col>
       </Row>
 
-      {/* Full-page modal for marker clicks */}
       <ReportDetailModal
         report={selectedReport}
         show={showDetail}

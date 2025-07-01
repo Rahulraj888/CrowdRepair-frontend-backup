@@ -9,25 +9,31 @@ import {
 } from "react-bootstrap";
 import { getComments } from "../services/reportService";
 
-// Calculate distance between two lat/lng pairs
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const toRad = (deg) => (deg * Math.PI) / 180;
-  const R = 6371; // km
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+  return (
+    R *
+    2 *
+    Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  );
 };
 
-// Format timestamp as "2h ago" or date
 const timeAgo = (dateStr) => {
   const diff = Date.now() - new Date(dateStr);
   const hrs = Math.floor(diff / (1000 * 60 * 60));
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
-  return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
+  return days < 7
+    ? `${days}d ago`
+    : new Date(dateStr).toLocaleDateString();
 };
 
 export default function ReportDetailModal({
@@ -40,10 +46,7 @@ export default function ReportDetailModal({
   BACKEND,
   MAPBOX_TOKEN,
 }) {
-  // Prevent null access
-  if (!report) {
-    return null;
-  }
+  if (!report) return null;
 
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -51,7 +54,7 @@ export default function ReportDetailModal({
   const [posting, setPosting] = useState(false);
   const [address, setAddress] = useState("");
 
-  // Fetch comments when report changes
+  // fetch comments
   useEffect(() => {
     setLoadingComments(true);
     getComments(report._id)
@@ -59,14 +62,16 @@ export default function ReportDetailModal({
       .finally(() => setLoadingComments(false));
   }, [report]);
 
-  // Reverse-geocode address
+  // reverse-geocode
   useEffect(() => {
     const [lng, lat] = report.location.coordinates;
     fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`
     )
       .then((r) => r.json())
-      .then((d) => setAddress(d.features?.[0]?.place_name || ""))
+      .then((d) =>
+        setAddress(d.features?.[0]?.place_name || "")
+      )
       .catch(() => {});
   }, [report, MAPBOX_TOKEN]);
 
@@ -84,7 +89,6 @@ export default function ReportDetailModal({
     setPosting(true);
     await onAddComment(report._id, newText);
     setNewText("");
-    // Re-fetch comments
     const fresh = await getComments(report._id);
     setComments(fresh);
     setPosting(false);
@@ -126,7 +130,8 @@ export default function ReportDetailModal({
           <strong>Reporter:</strong> {report.user.name}
         </p>
         <p>
-          <strong>Reported on:</strong> {new Date(report.createdAt).toLocaleString()}
+          <strong>Reported on:</strong>{" "}
+          {new Date(report.createdAt).toLocaleString()}
         </p>
         <p>
           <strong>Status:</strong> {report.status}
@@ -140,7 +145,11 @@ export default function ReportDetailModal({
         <hr />
         <h6>Comments</h6>
         {loadingComments ? (
-          <Spinner size="sm" animation="border" className="my-2" />
+          <Spinner
+            size="sm"
+            animation="border"
+            className="my-2"
+          />
         ) : (
           comments.map((c) => (
             <div
