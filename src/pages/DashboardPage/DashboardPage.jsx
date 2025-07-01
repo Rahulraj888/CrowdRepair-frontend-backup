@@ -60,7 +60,10 @@ function useReports(statusFilter, typeFilter) {
     setLoading(true);
     setError(null);
     try {
-      const all = await getReports({ status: statusFilter, type: typeFilter });
+      const filters = {};
+      if (statusFilter !== "all") filters.status = statusFilter;
+      if (typeFilter !== "all") filters.type = typeFilter;
+      const all = await getReports(filters);
       setReports(all.filter((r) => r.user !== user?._id));
     } catch (err) {
       setError(err);
@@ -149,12 +152,48 @@ function ReportMarker({ report, onClick }) {
   );
 }
 
-// List item component
-function ReportListItem({ report, idx, onUpvote, onAddComment }) {
+// List item component with reverse-geocoded address
+function ReportListItem({ report, idx, onUpvote, onAddComment, userLocation }) {
   const { comments, loading: commentsLoading } = useComments(
     report._id,
     report.commentCount
   );
+  const [posting, setPosting] = useState(false);
+  const [newText, setNewText] = useState("");
+  const [address, setAddress] = useState(null);
+
+  // Fetch reverse-geocoded address once
+  useEffect(() => {
+    const [lng, lat] = report.location.coordinates;
+    fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.features && data.features.length) {
+          setAddress(data.features[0].place_name);
+        }
+      })
+      .catch((err) => console.warn('Geocode failed', err));
+  }, [report.location.coordinates]);
+
+  // compute distance if available
+  const distance = userLocation
+    ? haversineDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        report.location.coordinates[1],
+        report.location.coordinates[0]
+      ).toFixed(1)
+    : null;
+
+  const handlePost = async () => {
+    if (!newText.trim()) return;
+    setPosting(true);
+    await onAddComment(report._id, newText);
+    setNewText("");
+    setPosting(false);
+  };
 
   const statusStyles = {
     Fixed: { bg: "#28a745", color: "#fff" },
@@ -164,17 +203,6 @@ function ReportListItem({ report, idx, onUpvote, onAddComment }) {
   };
 
   const { bg, color } = statusStyles[report.status] || statusStyles.Pending;
-
-  const [posting, setPosting] = useState(false);
-  const [newText, setNewText] = useState("");
-
-  const handlePost = async () => {
-    if (!newText.trim()) return;
-    setPosting(true);
-    await onAddComment(report._id, newText);
-    setNewText("");
-    setPosting(false);
-  };
 
   return (
     <ListGroup.Item className={`py-3 ${styles.reportCard}`}> 
@@ -192,13 +220,19 @@ function ReportListItem({ report, idx, onUpvote, onAddComment }) {
           <div className="d-flex justify-content-between align-items-start">
             <div>
               <strong>{report.issueType}</strong>
-              <div className="text-muted small">{timeAgo(report.createdAt)}</div>
+              <div className="text-muted small">
+                {timeAgo(report.createdAt)}
+                {distance && <>&nbsp;•&nbsp;{distance} km away</>}
+              </div>
             </div>
             <span style={{ backgroundColor: bg, color }} className={styles.statusBadge}>
               {report.status}
             </span>
           </div>
           <p className="mt-1 mb-2 small">{report.description}</p>
+          {address && (
+            <div className="small text-muted mb-2">{address}</div>
+          )}
           <div className="d-flex gap-3 small">
             <Button
               variant="link"
@@ -437,6 +471,7 @@ export default function DashboardPage() {
                 idx={idx}
                 onUpvote={handleUpvote}
                 onAddComment={handleAddComment}
+                userLocation={userLocation}
               />
             ))}
           </ListGroup>
