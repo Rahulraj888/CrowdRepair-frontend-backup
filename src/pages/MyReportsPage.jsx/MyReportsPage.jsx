@@ -18,6 +18,7 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import { getReports, deleteReport } from "../../services/reportService";
 import styles from "./MyReportsPage.module.css";
+import ReportDetailModal from "../../components/ReportDetailModal";
 
 const BANNER_SRC = "/my-reports.png";
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -80,6 +81,9 @@ export default function MyReportsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("desc");
+
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
 
   // fetch user's reports
   useEffect(() => {
@@ -202,8 +206,8 @@ export default function MyReportsPage() {
             <Table hover responsive>
               <thead>
                 <tr>
-                  <th>ID</th><th>Image</th><th>Type</th><th>Description</th>
-                  <th>Location</th><th>Date</th><th>Status</th><th>Actions</th>
+                  <th>ID</th><th>Image</th><th>Type</th><th>Location</th>
+                 <th>Date</th><th>Status</th><th>Details</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,10 +218,12 @@ export default function MyReportsPage() {
                       <Image src={`${BACKEND}${r.imageUrls[0]}`} thumbnail style={{width:80,height:60,objectFit:'cover'}}/> : '—'
                     }</td>
                     <td>{r.issueType}</td>
-                    <td className={styles.wrapCell}>{r.description}</td>
                     <td className={styles.wrapCell}>📍 {r.address}</td>
                     <td>{new Date(r.createdAt).toLocaleDateString()}</td>
                     <td><Badge bg={getStatusVariant(r.status)}>{r.status}</Badge></td>
+                    <td>
+                      <Button size="sm" variant="link" onClick={() => { setSelectedReport(r); setShowDetail(true); }}>View</Button>
+                    </td>
                     <td>
                       {r.status === 'Pending' && (
                         <>
@@ -231,6 +237,19 @@ export default function MyReportsPage() {
               </tbody>
             </Table>
           </div>
+
+          {/* Detail Modal */}
+          <ReportDetailModal
+            report={selectedReport}
+            show={showDetail}
+            onHide={() => setShowDetail(false)}
+            onUpvote={() => {/* no upvote on MyReports */}}
+            onAddComment={() => {/* no comment on MyReports */}}
+            userLocation={null}
+            BACKEND={BACKEND}
+            MAPBOX_TOKEN={null}
+            disableComments={true}
+          />
 
           {/* mobile list */}
           <div className="d-block d-md-none">
@@ -247,9 +266,11 @@ export default function MyReportsPage() {
                         <Badge bg={getStatusVariant(r.status)} className="ms-2">{r.status}</Badge>
                       </div>
                       <div className="mt-1"><strong>{r.issueType}</strong></div>
-                      <div className={`small ${styles.clamp2}`}>{r.description}</div>
                       <div className={`small mt-1 ${styles.twoLineCell}`}>📍 {r.address}</div>
                       <div className="text-muted small mt-1">{new Date(r.createdAt).toLocaleDateString()}</div>
+                      <div className="mt-2 d-flex gap-2">
+                          <Button size="sm" variant="outline-primary" onClick={() => { setSelectedReport(r); setShowDetail(true); }}>View Details</Button>
+                      </div>
                       {r.status === 'Pending' && (
                         <div className="mt-2 d-flex gap-2">
                           <Button size="sm" variant="outline-primary" onClick={() => navigate(`/report/${r._id}/edit`)}>Edit</Button>

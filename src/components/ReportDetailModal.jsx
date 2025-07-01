@@ -45,6 +45,7 @@ export default function ReportDetailModal({
   userLocation,
   BACKEND,
   MAPBOX_TOKEN,
+  disableComments = false,
 }) {
   if (!report) return null;
 
@@ -145,41 +146,46 @@ export default function ReportDetailModal({
         <hr />
         <h6>Comments</h6>
         {loadingComments ? (
-          <Spinner
+        <Spinner
             size="sm"
             animation="border"
             className="my-2"
-          />
+        />
         ) : (
-          comments.map((c) => (
+        comments.map((c) => (
             <div
-              key={c._id}
-              className="px-2 py-1 bg-light rounded mb-2"
+            key={c._id}
+            className="px-2 py-1 bg-light rounded mb-2"
             >
-              <strong>{c.user.name}:</strong> {c.text}
+            <strong>{c.user.name}:</strong> {c.text}
             </div>
-          ))
+        ))
         )}
+        {!disableComments && 
+        <>
         <InputGroup className="mt-3">
-          <Form.Control
+        <Form.Control
             placeholder="Write a comment…"
             size="sm"
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
-          />
-          <Button
+        />
+        <Button
             variant="primary"
             size="sm"
             disabled={posting}
             onClick={handlePost}
-          >
+        >
             {posting ? (
-              <Spinner size="sm" animation="border" />
+            <Spinner size="sm" animation="border" />
             ) : (
-              "Post"
+            "Post"
             )}
-          </Button>
+        </Button>
         </InputGroup>
+    </>}
+        
+        
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>
