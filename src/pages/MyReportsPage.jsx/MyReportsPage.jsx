@@ -18,23 +18,74 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import { getReports, deleteReport } from "../../services/reportService";
 import styles from "./MyReportsPage.module.css";
+import ReportDetailModal from "../../components/ReportDetailModal";
 
 const BANNER_SRC = "/my-reports.png";
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// Hook: filter and sort reports
+function useFilteredSortedReports(reports, status, type, sortOrder) {
+  return useMemo(() => {
+    return reports
+      .filter(r => status === "all" || r.status === status)
+      .filter(r => type === "all" || r.issueType === type)
+      .sort((a, b) => {
+        const da = new Date(a.createdAt), db = new Date(b.createdAt);
+        return sortOrder === "asc" ? da - db : db - da;
+      });
+  }, [reports, status, type, sortOrder]);
+}
+
+// Component: stats cards row
+function StatsCards({ stats }) {
+  const config = [
+    { key: 'total', label: 'Total', value: stats.total, variant: 'primary', textColor: 'white' },
+    { key: 'fixed', label: 'Fixed', value: stats.fixed, variant: 'success', textColor: 'white' },
+    { key: 'pending', label: 'Pending', value: stats.pending, variant: 'warning', textColor: 'dark' },
+    { key: 'inProgress', label: 'In Progress', value: stats.inProgress, variant: 'info', textColor: 'white' },
+    { key: 'rejected', label: 'Rejected', value: stats.rejected, variant: 'danger', textColor: 'white' },
+  ];
+
+  return (
+    <Row className="mb-4 gx-3 justify-content-center">
+      {config.map(c => (
+        <Col key={c.key} xs={6} md={2}>
+          <Card bg={c.variant} text={c.textColor} className="text-center">
+            <Card.Body>
+              <Card.Title>{c.label}</Card.Title>
+              <Card.Text as="h3">{c.value}</Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  );
+}
+
+// Get Bootstrap variant for status badge
+function getStatusVariant(status) {
+  return (
+    { Fixed: 'success', 'In Progress': 'warning', Rejected: 'danger' }[status] || 'secondary'
+  );
+}
 
 export default function MyReportsPage() {
   const { user } = useContext(AuthContext);
   const userId = user?._id;
   const navigate = useNavigate();
 
-  const [myReports, setMyReports] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [error, setError] = useState("");
 
-  // Fetch reports
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
+
+  // fetch user's reports
   useEffect(() => {
     if (!userId) {
       setLoading(false);
@@ -43,59 +94,39 @@ export default function MyReportsPage() {
     setLoading(true);
     setError("");
     getReports({ status: statusFilter, type: typeFilter })
-      .then(all => setMyReports(all.filter(r => r.user === userId)))
+      .then(all => setReports(all.filter(r => r.user === userId)))
       .catch(err => {
-        console.error("Error loading reports:", err);
+        console.error(err);
         setError("Failed to load reports.");
       })
       .finally(() => setLoading(false));
   }, [userId, statusFilter, typeFilter]);
 
-  // Summary stats
+  // derive stats
   const stats = useMemo(() => {
-    const total = myReports.length;
-    const fixed = myReports.filter(r => r.status === "Fixed").length;
-    const pending = myReports.filter(r => r.status === "Pending").length;
-    const inProgress = myReports.filter(r => r.status === "In Progress").length;
-    const rejected = myReports.filter(r => r.status === "Rejected").length;
+    const total = reports.length;
+    const fixed = reports.filter(r => r.status === 'Fixed').length;
+    const pending = reports.filter(r => r.status === 'Pending').length;
+    const inProgress = reports.filter(r => r.status === 'In Progress').length;
+    const rejected = reports.filter(r => r.status === 'Rejected').length;
     return { total, fixed, pending, inProgress, rejected };
-  }, [myReports]);
+  }, [reports]);
 
-  // Stats card config with Bootstrap variants
-  const statsConfig = useMemo(() => [
-    { key: 'total', label: 'Total', value: stats.total, variant: 'primary' },
-    { key: 'fixed', label: 'Fixed', value: stats.fixed, variant: 'success' },
-    { key: 'pending', label: 'Pending', value: stats.pending, variant: 'warning' },
-    { key: 'inProgress', label: 'In Progress', value: stats.inProgress, variant: 'info' },
-    { key: 'rejected', label: 'Rejected', value: stats.rejected, variant: 'danger' },
-  ], [stats]);
-
+  // delete handler
   const handleDelete = useCallback(async id => {
     if (!window.confirm("Delete this report?")) return;
     try {
       await deleteReport(id);
-      setMyReports(prev => prev.filter(r => r._id !== id));
+      setReports(prev => prev.filter(r => r._id !== id));
     } catch (err) {
-      console.error("Delete failed:", err);
+      console.error(err);
       alert("Failed to delete.");
     }
   }, []);
 
-  const getStatusVariant = s =>
-    ({ Fixed: "success", "In Progress": "warning", Rejected: "danger" }[s] || "secondary");
+  // filtered & sorted
+  const displayed = useFilteredSortedReports(reports, statusFilter, typeFilter, sortOrder);
 
-  // Filter, sort, and display
-  const displayed = useMemo(() => {
-    return myReports
-      .filter(r => (statusFilter === "all" || r.status === statusFilter))
-      .filter(r => (typeFilter === "all" || r.issueType === typeFilter))
-      .sort((a, b) => {
-        const da = new Date(a.createdAt), db = new Date(b.createdAt);
-        return sortOrder === "asc" ? da - db : db - da;
-      });
-  }, [myReports, statusFilter, typeFilter, sortOrder]);
-
-  // Loading state
   if (loading) {
     return (
       <Container className="py-4 text-center">
@@ -112,110 +143,89 @@ export default function MyReportsPage() {
       </div>
 
       {/* Stats Cards */}
-      <Row className="mb-4 gx-3 justify-content-center">
-        {statsConfig.map(({ key, label, value, variant }) => (
-          <Col key={key} xs={6} md={2}>
-            <Card bg={variant} text={variant === 'warning' ? 'dark' : 'white'} className="text-center">
-              <Card.Body>
-                <Card.Title>{label}</Card.Title>
-                <Card.Text as="h3">{value}</Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      <StatsCards stats={stats} />
 
       <h2>My Reports</h2>
-
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError("") }>
-          {error}
-        </Alert>
+        <Alert variant="danger" dismissible onClose={() => setError("") }>{error}</Alert>
       )}
 
-      {/* Filters & Sort */}
+      {/* filters & sort */}
       <Row className="mb-3 gx-2">
         <Col xs={12} md={4}>
           <Dropdown as={ButtonGroup} className="w-100">
-            <Dropdown.Toggle variant="light" className="w-100 text-start border" id="status-dropdown">
-              {statusFilter === "all" ? "All Statuses" : statusFilter}
+            <Dropdown.Toggle variant="light" className="w-100 text-start border">
+              {statusFilter === 'all' ? 'All Statuses' : statusFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu className="w-100">
-              {["all", "Pending", "In Progress", "Fixed", "Rejected"].map(s => (
-                <Dropdown.Item
-                  key={s}
-                  active={s === statusFilter}
-                  onClick={() => setStatusFilter(s)}
-                >{s === "all" ? "All Statuses" : s}</Dropdown.Item>
+              {['all','Pending','In Progress','Fixed','Rejected'].map(s => (
+                <Dropdown.Item key={s} active={s===statusFilter} onClick={() => setStatusFilter(s)}>
+                  {s==='all'? 'All Statuses': s}
+                </Dropdown.Item>
               ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
         <Col xs={12} md={4}>
           <Dropdown as={ButtonGroup} className="w-100">
-            <Dropdown.Toggle variant="light" className="w-100 text-start border" id="type-dropdown">
-              {typeFilter === "all" ? "All Types" : typeFilter}
+            <Dropdown.Toggle variant="light" className="w-100 text-start border">
+              {typeFilter === 'all' ? 'All Types' : typeFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu className="w-100">
-              {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map(t => (
-                <Dropdown.Item
-                  key={t}
-                  active={t === typeFilter}
-                  onClick={() => setTypeFilter(t)}
-                >{t === "all" ? "All Types" : t}</Dropdown.Item>
+              {['all','Pothole','Streetlight','Graffiti','Other'].map(t => (
+                <Dropdown.Item key={t} active={t===typeFilter} onClick={() => setTypeFilter(t)}>
+                  {t==='all'? 'All Types': t}
+                </Dropdown.Item>
               ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
         <Col xs={12} md={4}>
           <Dropdown as={ButtonGroup} className="w-100">
-            <Dropdown.Toggle variant="light" className="w-100 text-start border" id="sort-dropdown">
-              {sortOrder === "desc" ? "Newest First" : "Oldest First"}
+            <Dropdown.Toggle variant="light" className="w-100 text-start border">
+              {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
             </Dropdown.Toggle>
             <Dropdown.Menu className="w-100">
-              {[{ label: "Newest First", value: "desc" }, { label: "Oldest First", value: "asc" }].map(({ label, value }) => (
-                <Dropdown.Item
-                  key={value}
-                  active={value === sortOrder}
-                  onClick={() => setSortOrder(value)}
-                >{label}</Dropdown.Item>
+              {[{label:'Newest First',value:'desc'},{label:'Oldest First',value:'asc'}].map(o => (
+                <Dropdown.Item key={o.value} active={o.value===sortOrder} onClick={() => setSortOrder(o.value)}>
+                  {o.label}
+                </Dropdown.Item>
               ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
       </Row>
 
-      {/* Reports Table / List */}
+      {/* no results */}
       {displayed.length === 0 ? (
-        <div className="d-flex justify-content-center align-items-center" style={{ height: 100 }}>
-          <p className="h5 text-muted mb-0">No reports to show.</p>
-        </div>
+        <div className="text-center py-4 text-muted">No reports to show.</div>
       ) : (
         <>
-          {/* Desktop */}
+          {/* desktop table */}
           <div className="d-none d-md-block">
             <Table hover responsive>
               <thead>
                 <tr>
-                  <th>Issue ID</th><th>Image</th><th>Type</th><th>Description</th>
-                  <th>Location</th><th>Date</th><th>Status</th><th>Reject Reason</th><th>Actions</th>
+                  <th>ID</th><th>Image</th><th>Type</th><th>Location</th>
+                 <th>Date</th><th>Status</th><th>Details</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {displayed.map(r => (
                   <tr key={r._id}>
                     <td>{r._id}</td>
-                    <td>{r.imageUrls?.[0]
-                      ? <Image src={`${BACKEND}${r.imageUrls[0]}`} alt={r.issueType} thumbnail style={{ width:80, height:60, objectFit:"cover" }}/> : '—'
+                    <td>{r.imageUrls?.[0] ?
+                      <Image src={`${BACKEND}${r.imageUrls[0]}`} thumbnail style={{width:80,height:60,objectFit:'cover'}}/> : '—'
                     }</td>
                     <td>{r.issueType}</td>
-                    <td className={styles.wrapCell}>{r.description}</td>
                     <td className={styles.wrapCell}>📍 {r.address}</td>
                     <td>{new Date(r.createdAt).toLocaleDateString()}</td>
                     <td><Badge bg={getStatusVariant(r.status)}>{r.status}</Badge></td>
-                    <td className={styles.wrapCell}>{r.status === "Rejected" ? r.rejectReason : '—'}</td>
                     <td>
-                      {r.status === "Pending" && (
+                      <Button size="sm" variant="link" onClick={() => { setSelectedReport(r); setShowDetail(true); }}>View</Button>
+                    </td>
+                    <td>
+                      {r.status === 'Pending' && (
                         <>
                           <Button size="sm" variant="outline-primary" className="me-2" onClick={() => navigate(`/report/${r._id}/edit`)}>Edit</Button>
                           <Button size="sm" variant="outline-danger" onClick={() => handleDelete(r._id)}>Delete</Button>
@@ -228,31 +238,45 @@ export default function MyReportsPage() {
             </Table>
           </div>
 
-          {/* Mobile */}
-          <div className="d-block d-md-none pt-1">
+          {/* Detail Modal */}
+          <ReportDetailModal
+            report={selectedReport}
+            show={showDetail}
+            onHide={() => setShowDetail(false)}
+            onUpvote={() => {/* no upvote on MyReports */}}
+            onAddComment={() => {/* no comment on MyReports */}}
+            userLocation={null}
+            BACKEND={BACKEND}
+            MAPBOX_TOKEN={null}
+            disableComments={true}
+          />
+
+          {/* mobile list */}
+          <div className="d-block d-md-none">
             <ListGroup variant="flush">
               {displayed.map(r => (
                 <ListGroup.Item key={r._id} className="py-3">
                   <Row>
                     <Col xs={4}>
-                      {r.imageUrls?.[0] && <Image src={`${BACKEND}${r.imageUrls[0]}`} alt={r.issueType} thumbnail style={{ width:"100%", height:100, objectFit:"cover" }}/>}
+                      {r.imageUrls?.[0] && <Image src={`${BACKEND}${r.imageUrls[0]}`} fluid thumbnail style={{height:100,objectFit:'cover'}}/>}
                     </Col>
                     <Col xs={8}>
                       <div className="d-flex align-items-center">
-                        <strong className="text-truncate" style={{ flex:"1 1 auto", minWidth:0 }}>{r._id}</strong>
-                        <Badge bg={getStatusVariant(r.status)} className="ms-2 flex-shrink-0">{r.status}</Badge>
+                        <strong className="text-truncate" style={{flex:'1 1 auto',minWidth:0}}>{r._id}</strong>
+                        <Badge bg={getStatusVariant(r.status)} className="ms-2">{r.status}</Badge>
                       </div>
                       <div className="mt-1"><strong>{r.issueType}</strong></div>
-                      <div className={`small ${styles.clamp2}`}>{r.description}</div>
                       <div className={`small mt-1 ${styles.twoLineCell}`}>📍 {r.address}</div>
-                      {r.status === "Rejected" && <div className="small text-danger mt-1"><strong>Reason:</strong> {r.rejectReason}</div>}
                       <div className="text-muted small mt-1">{new Date(r.createdAt).toLocaleDateString()}</div>
                       <div className="mt-2 d-flex gap-2">
-                        {r.status === "Pending" && <>
+                          <Button size="sm" variant="outline-primary" onClick={() => { setSelectedReport(r); setShowDetail(true); }}>View Details</Button>
+                      </div>
+                      {r.status === 'Pending' && (
+                        <div className="mt-2 d-flex gap-2">
                           <Button size="sm" variant="outline-primary" onClick={() => navigate(`/report/${r._id}/edit`)}>Edit</Button>
                           <Button size="sm" variant="outline-danger" onClick={() => handleDelete(r._id)}>Delete</Button>
-                        </>}
-                      </div>
+                        </div>
+                      )}
                     </Col>
                   </Row>
                 </ListGroup.Item>
