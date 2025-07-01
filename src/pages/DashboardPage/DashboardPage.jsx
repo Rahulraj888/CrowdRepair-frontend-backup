@@ -13,6 +13,8 @@ import {
   Image,
   Spinner,
   Alert,
+  Modal,
+  Carousel,
 } from "react-bootstrap";
 import Map, { Marker, Popup } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -27,7 +29,7 @@ import {
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// Haversine distance for sorting by proximity
+// Calculate distance between two lat/lng pairs
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const toRad = (deg) => (deg * Math.PI) / 180;
   const R = 6371; // km
@@ -36,11 +38,10 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Format "2h ago" / "3d ago"
+// Format timestamp as “2h ago” or date
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr);
   const hrs = Math.floor(diff / (1000 * 60 * 60));
@@ -49,7 +50,7 @@ function timeAgo(dateStr) {
   return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
 }
 
-// Custom hook for fetching reports
+// Hook to fetch and filter reports
 function useReports(statusFilter, typeFilter) {
   const { user } = useContext(AuthContext);
   const [reports, setReports] = useState([]);
@@ -79,7 +80,7 @@ function useReports(statusFilter, typeFilter) {
   return { reports, loading, error, refetch: fetchReports };
 }
 
-// Custom hook for fetching comments per report
+// Hook to fetch comments for a report
 function useComments(reportId, commentCount) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -106,7 +107,7 @@ function useComments(reportId, commentCount) {
   return { comments, loading, error, refetch: fetch };
 }
 
-// Summary panel component
+// Displays summary statistics
 function StatsPanel({ total, resolved, avgRes }) {
   return (
     <Card.Body className="d-flex justify-content-around text-center">
@@ -126,58 +127,41 @@ function StatsPanel({ total, resolved, avgRes }) {
   );
 }
 
-// Marker component
+// Map marker with status color
 function ReportMarker({ report, onClick }) {
-  const statusColorMap = {
-    Pending: "#f39c12",
-    "In Progress": "#3498db",
-    Fixed: "#2ecc71",
-    Rejected: "#e74c3c",
-  };
-
+  const colors = { Pending: "#f39c12", "In Progress": "#3498db", Fixed: "#2ecc71", Rejected: "#e74c3c" };
   return (
     <Marker
       longitude={report.location.coordinates[0]}
       latitude={report.location.coordinates[1]}
-      onClick={onClick}
       anchor="bottom"
+      onClick={onClick}
     >
-      <FaMapMarkerAlt
-        size={34}
-        color={statusColorMap[report.status] || "gray"}
-        style={{ filter: "drop-shadow(0px 2px 2px rgba(0,0,0,0.3))" }}
-        aria-label={`Report: ${report.issueType}, status: ${report.status}`}
-      />
+      <FaMapMarkerAlt size={34} color={colors[report.status] || "gray"} />
     </Marker>
   );
 }
 
-// List item component with reverse-geocoded address
+// Single report item + detail modal
 function ReportListItem({ report, idx, onUpvote, onAddComment, userLocation }) {
-  const { comments, loading: commentsLoading } = useComments(
-    report._id,
-    report.commentCount
-  );
-  const [posting, setPosting] = useState(false);
+  const { comments, loading: comLoading } = useComments(report._id, report.commentCount);
   const [newText, setNewText] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [show, setShow] = useState(false);
   const [address, setAddress] = useState(null);
 
-  // Fetch reverse-geocoded address once
+  // Reverse geocode for full address
   useEffect(() => {
     const [lng, lat] = report.location.coordinates;
     fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`
     )
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.features && data.features.length) {
-          setAddress(data.features[0].place_name);
-        }
-      })
-      .catch((err) => console.warn('Geocode failed', err));
+      .then((r) => r.json())
+      .then((d) => d.features?.[0] && setAddress(d.features[0].place_name))
+      .catch(() => {});
   }, [report.location.coordinates]);
 
-  // compute distance if available
+  // Distance in km
   const distance = userLocation
     ? haversineDistance(
         userLocation.latitude,
@@ -195,96 +179,101 @@ function ReportListItem({ report, idx, onUpvote, onAddComment, userLocation }) {
     setPosting(false);
   };
 
-  const statusStyles = {
-    Fixed: { bg: "#28a745", color: "#fff" },
-    "In Progress": { bg: "#ffc107", color: "#212529" },
-    Rejected: { bg: "#dc3545", color: "#fff" },
-    Pending: { bg: "#6c757d", color: "#fff" },
-  };
-
+  const statusStyles = { Fixed: { bg: "#28a745", color: "#fff" }, "In Progress": { bg: "#ffc107", color: "#212529" }, Rejected: { bg: "#dc3545", color: "#fff" }, Pending: { bg: "#6c757d", color: "#fff" } };
   const { bg, color } = statusStyles[report.status] || statusStyles.Pending;
 
   return (
-    <ListGroup.Item className={`py-3 ${styles.reportCard}`}> 
-      <div className="d-flex">
-        {report.imageUrls?.[0] && (
-          <Image
-            src={`${BACKEND}${report.imageUrls[0]}`}
-            thumbnail
-            style={{ width: 80, height: 60, objectFit: "cover" }}
-            className="me-3"
-            alt="Report thumbnail"
-          />
-        )}
-        <div className="flex-grow-1">
-          <div className="d-flex justify-content-between align-items-start">
+    <>
+      <ListGroup.Item className={`py-3 ${styles.reportCard}`}>
+        <div className="d-flex justify-content-between align-items-start">
+          <div className="d-flex">
+            {report.imageUrls?.[0] && (
+              <Image
+                src={`${BACKEND}${report.imageUrls[0]}`}
+                thumbnail
+                style={{ width: 80, height: 60, objectFit: "cover" }}
+                className="me-3"
+              />
+            )}
             <div>
               <strong>{report.issueType}</strong>
               <div className="text-muted small">
-                {timeAgo(report.createdAt)}
-                {distance && <>&nbsp;•&nbsp;{distance} km away</>}
+                {timeAgo(report.createdAt)}{distance && ` • ${distance}km away`}
               </div>
+              <p className="mt-1 small">{report.description}</p>
             </div>
-            <span style={{ backgroundColor: bg, color }} className={styles.statusBadge}>
-              {report.status}
-            </span>
           </div>
-          <p className="mt-1 mb-2 small">{report.description}</p>
-          {address && (
-            <div className="small text-muted mb-2">{address}</div>
+          <span style={{ backgroundColor: bg, color }} className={styles.statusBadge}>
+            {report.status}
+          </span>
+        </div>
+        <div className="mt-2 d-flex gap-3 align-items-center">
+          <Button variant="link" size="sm" onClick={() => setShow(true)}>
+            View Details
+          </Button>
+          <Button variant="link" size="sm" onClick={() => onUpvote(report._id, idx)}>
+            👍 {report.upvoteCount || 0}
+          </Button>
+          <Button variant="link" size="sm" onClick={() => setShow(true)}>
+            💬 {report.commentCount || 0}
+          </Button>
+        </div>
+      </ListGroup.Item>
+
+      {/* Detail Modal */}
+      <Modal show={show} onHide={() => setShow(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>{report.issueType}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {report.imageUrls?.length > 0 && (
+            <Carousel className="mb-3">
+              {report.imageUrls.map((url,i) => (
+                <Carousel.Item key={i}>
+                  <img
+                    src={`${BACKEND}${url}`}
+                    alt={`Image ${i+1}`}
+                    className="d-block w-100" />
+                </Carousel.Item>
+              ))}
+            </Carousel>
           )}
-          <div className="d-flex gap-3 small">
-            <Button
-              variant="link"
-              size="sm"
-              disabled={posting}
-              onClick={() => onUpvote(report._id, idx)}
-              aria-label={"Upvote report"}
-            >
-              👍 Upvote ({report.upvoteCount || 0})
-            </Button>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => onUpvote(/* reuse for refresh */)}
-              aria-label={"Refresh comments"}
-            >
-              💬 Comment ({report.commentCount})
-            </Button>
-          </div>
-          {commentsLoading ? (
-            <Spinner animation="border" size="sm" className="mt-2" />
+          <p><strong>Description:</strong> {report.description}</p>
+          {address && <p><strong>Location:</strong> {address}</p>}
+          {distance && <p><strong>Distance:</strong> {distance} km</p>}
+          <p><strong>Reporter:</strong> {report.user.name}</p>
+          <p><strong>Reported on:</strong> {new Date(report.createdAt).toLocaleString()}</p>
+          <p><strong>Status:</strong> {report.status}</p>
+          <hr/>
+          <h6>Comments</h6>
+          {comLoading ? (
+            <Spinner size="sm" animation="border" className="my-2" />
           ) : (
-            comments.map((c) => (
-              <div
-                key={c._id}
-                className="mt-2 px-2 py-1 bg-light rounded small"
-              >
+            comments.map(c => (
+              <div key={c._id} className="px-2 py-1 bg-light rounded mb-2">
                 <strong>{c.user.name}:</strong> {c.text}
               </div>
             ))
           )}
-          <InputGroup className="mt-2">
+          <InputGroup className="mt-3">
             <Form.Control
-              placeholder="Add comment…"
+              placeholder="Write a comment…"
               size="sm"
               value={newText}
-              onChange={(e) => setNewText(e.target.value)}
-              aria-label="Add comment"
+              onChange={e => setNewText(e.target.value)}
             />
-            <Button
-              className={styles.btnPost}
-              variant="primary"
-              size="sm"
-              onClick={handlePost}
-              disabled={posting}
-            >
+            <Button variant="primary" size="sm" disabled={posting} onClick={handlePost}>
               {posting ? <Spinner size="sm" animation="border" /> : "Post"}
             </Button>
           </InputGroup>
-        </div>
-      </div>
-    </ListGroup.Item>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShow(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
   );
 }
 
@@ -297,184 +286,73 @@ export default function DashboardPage() {
   const [viewState, setViewState] = useState({ latitude: 43.65, longitude: -79.38, zoom: 13.5 });
   const [popupInfo, setPopupInfo] = useState(null);
 
-  // Get user location
+  // load user location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setViewState((v) => ({ ...v, latitude, longitude }));
-          setUserLocation({ latitude, longitude });
-        },
-        (err) => console.warn("Geolocation failed", err)
+        ({ coords }) => {
+          setViewState(v => ({ ...v, latitude: coords.latitude, longitude: coords.longitude }));
+          setUserLocation({ latitude: coords.latitude, longitude: coords.longitude });
+        }
       );
     }
   }, []);
 
-  // Sort reports by distance
-  const sortedReports = useMemo(() => {
+  const sorted = useMemo(() => {
     if (!userLocation) return reports;
-    return [...reports].sort((a, b) => {
-      const distA = haversineDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        a.location.coordinates[1],
-        a.location.coordinates[0]
-      );
-      const distB = haversineDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        b.location.coordinates[1],
-        b.location.coordinates[0]
-      );
-      return distA - distB;
+    return [...reports].sort((a,b) => {
+      const da = haversineDistance(userLocation.latitude, userLocation.longitude, a.location.coordinates[1], a.location.coordinates[0]);
+      const db = haversineDistance(userLocation.latitude, userLocation.longitude, b.location.coordinates[1], b.location.coordinates[0]);
+      return da - db;
     });
   }, [reports, userLocation]);
 
-  // Summary stats
   const total = reports.length;
-  const resolved = reports.filter((r) => r.status === "Fixed").length;
+  const resolved = reports.filter(r => r.status === "Fixed").length;
   const avgRes = useMemo(() => {
-    const done = reports.filter((r) => r.status === "Fixed" && r.updatedAt);
+    const done = reports.filter(r => r.status === "Fixed" && r.updatedAt);
     if (!done.length) return 0;
-    const days = done.reduce(
-      (sum, r) =>
-        sum + (new Date(r.updatedAt) - new Date(r.createdAt)) / (1000 * 60 * 60 * 24),
-      0
-    );
-    return (days / done.length).toFixed(1);
+    const days = done.reduce((sum, r) => sum + (new Date(r.updatedAt) - new Date(r.createdAt))/(1000*60*60*24), 0);
+    return (days/done.length).toFixed(1);
   }, [reports]);
 
-  const handleUpvote = async (id, idx) => {
-    try {
-      await upvoteReport(id);
-      refetch();
-    } catch (err) {
-      console.error("Upvote failed", err);
-    }
-  };
-
-  const handleAddComment = async (id, text) => {
-    try {
-      await addComment(id, text);
-      refetch();
-    } catch (err) {
-      console.error("Comment failed", err);
-    }
-  };
+  const handleUpvote = async (id, idx) => { try{ await upvoteReport(id); refetch(); }catch{} };
+  const handleAddComment = async (id, text) => { try{ await addComment(id, text); refetch(); }catch{} };
 
   return (
     <Container fluid className="py-4">
       <h2>Dashboard</h2>
-
-      {(loading || error) && (
-        <Alert variant={error ? "danger" : "info"}>
-          {error ? "Failed to load reports." : "Loading reports..."}
-        </Alert>
-      )}
-
-      {/* Filters */}
+      {(loading || error) && <Alert variant={error?"danger":"info"}>{error?"Failed to load":"Loading reports..."}</Alert>}
       <Row className="mb-3">
         <Col xs={6}>
-          <Form.Select
-            aria-label="Filter by status"
-            className={styles.roundedBox}
-            value={statusFilter}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            {["all", "Pending", "In Progress", "Fixed", "Rejected"].map((s) => (
-              <option key={s} value={s}>
-                {s === "all" ? "Filter by status" : s}
-              </option>
-            ))}
+          <Form.Select value={statusFilter} onChange={e=>setStatus(e.target.value)} className={styles.roundedBox}>
+            {["all","Pending","In Progress","Fixed","Rejected"].map(s=><option key={s} value={s}>{s}</option>)}
           </Form.Select>
         </Col>
         <Col xs={6}>
-          <Form.Select
-            aria-label="Filter by type"
-            className={styles.roundedBox}
-            value={typeFilter}
-            onChange={(e) => setType(e.target.value)}
-          >
-            {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map((t) => (
-              <option key={t} value={t}>
-                {t === "all" ? "Filter by type" : t}
-              </option>
-            ))}
+          <Form.Select value={typeFilter} onChange={e=>setType(e.target.value)} className={styles.roundedBox}>
+            {["all","Pothole","Streetlight","Graffiti","Other"].map(t=><option key={t} value={t}>{t}</option>)}
           </Form.Select>
         </Col>
       </Row>
-
       <Row>
-        {/* Map */}
         <Col lg={8} className="mb-4">
-          {!MAPBOX_TOKEN ? (
-            <Alert variant="warning">Map token missing.</Alert>
-          ) : (
-            <Map
-              {...viewState}
-              style={{ width: "100%", height: 400, borderRadius: 8 }}
-              mapStyle="mapbox://styles/mapbox/streets-v11"
-              mapboxAccessToken={MAPBOX_TOKEN}
-              onMove={(evt) => setViewState(evt.viewState)}
-            >
-              {userLocation && (
-                <Marker
-                  longitude={userLocation.longitude}
-                  latitude={userLocation.latitude}
-                  anchor="bottom"
-                >
-                  <svg height="20" viewBox="0 0 24 24" style={{ fill: "#007bff", stroke: "#fff", strokeWidth: 2, transform: "translate(-12px, -24px)" }} />
-                </Marker>
-              )}
-              {sortedReports.map((r) => (
-                <ReportMarker key={r._id} report={r} onClick={() => setPopupInfo(r)} />
-              ))}
-              {popupInfo && (
-                <Popup
-                  anchor="top"
-                  longitude={popupInfo.location.coordinates[0]}
-                  latitude={popupInfo.location.coordinates[1]}
-                  onClose={() => setPopupInfo(null)}
-                >
-                  <strong>{popupInfo.issueType}</strong>
-                  <br />
-                  {popupInfo.description}
-                </Popup>
-              )}
-            </Map>
-          )}
-
-          <Card className={`mt-3 ${styles.roundedBox}`}>
-            <StatsPanel total={total} resolved={resolved} avgRes={avgRes} />
-            <Card.Footer className={styles.legendBox}>
-              {Object.entries({ Pending: "#f39c12", "In Progress": "#3498db", Fixed: "#2ecc71", Rejected: "#e74c3c" }).map(
-                ([status, color]) => (
-                  <span key={status} className="d-flex align-items-center gap-1">
-                    <div style={{ width: 12, height: 12, borderRadius: "50%", background: color }} />
-                    <small>{status}</small>
-                  </span>
-                )
-              )}
-            </Card.Footer>
-          </Card>
+          {!MAPBOX_TOKEN
+            ? <Alert variant="warning">Map token missing.</Alert>
+            : <Map {...viewState} style={{width:'100%',height:400,borderRadius:8}} mapStyle="mapbox://styles/mapbox/streets-v11" mapboxAccessToken={MAPBOX_TOKEN} onMove={e=>setViewState(e.viewState)}>
+                {userLocation && <Marker longitude={userLocation.longitude} latitude={userLocation.latitude} anchor="bottom">
+                  <svg height="20" viewBox="0 0 24 24" style={{fill:'#007bff',stroke:'#fff',strokeWidth:2,transform:'translate(-12px,-24px)'}} />
+                </Marker>}
+                {sorted.map(r=><ReportMarker key={r._id} report={r} onClick={()=>setPopupInfo(r)} />)}
+                {popupInfo && <Popup anchor="top" longitude={popupInfo.location.coordinates[0]} latitude={popupInfo.location.coordinates[1]} onClose={()=>setPopupInfo(null)}>
+                  <strong>{popupInfo.issueType}</strong><br />{popupInfo.description}
+                </Popup>}
+              </Map>}
+          <Card className={`mt-3 ${styles.roundedBox}`}><StatsPanel total={total} resolved={resolved} avgRes={avgRes} /><Card.Footer className={styles.legendBox}>{Object.entries({Pending:'#f39c12','In Progress':'#3498db',Fixed:'#2ecc71',Rejected:'#e74c3c'}).map(([st,c])=><span key={st} className="d-flex align-items-center gap-1"><div style={{width:12,height:12,borderRadius:'50%',background:c}}/><small>{st}</small></span>)}</Card.Footer></Card>
         </Col>
-
-        {/* Report List */}
         <Col lg={4}>
           <h5>Recent Reports</h5>
-          <ListGroup variant="flush">
-            {sortedReports.slice(0, 6).map((r, idx) => (
-              <ReportListItem
-                key={r._id}
-                report={r}
-                idx={idx}
-                onUpvote={handleUpvote}
-                onAddComment={handleAddComment}
-                userLocation={userLocation}
-              />
-            ))}
-          </ListGroup>
+          <ListGroup variant="flush">{sorted.slice(0,6).map((r,i)=><ReportListItem key={r._id} report={r} idx={i} onUpvote={handleUpvote} onAddComment={handleAddComment} userLocation={userLocation}/>)}</ListGroup>
         </Col>
       </Row>
     </Container>
