@@ -6,6 +6,7 @@ import {
   Row,
   Col,
   Card,
+  Dropdown,
   Button,
   Form,
   InputGroup,
@@ -16,8 +17,9 @@ import {
   Modal,
   Carousel,
 } from "react-bootstrap";
-import Map, { Marker, Popup } from "react-map-gl";
+import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import ReportDetailModal from "../../components/ReportDetailModal";
 import { AuthContext } from "../../context/AuthContext";
 import {
   getReports,
@@ -80,33 +82,6 @@ function useReports(statusFilter, typeFilter) {
   return { reports, loading, error, refetch: fetchReports };
 }
 
-// Hook to fetch comments for a report
-function useComments(reportId, commentCount) {
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetch = useCallback(async () => {
-    if (!commentCount) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const c = await getComments(reportId);
-      setComments(c);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [reportId, commentCount]);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  return { comments, loading, error, refetch: fetch };
-}
-
 // Displays summary statistics
 function StatsPanel({ total, resolved, avgRes }) {
   return (
@@ -127,22 +102,7 @@ function StatsPanel({ total, resolved, avgRes }) {
   );
 }
 
-// Map marker with status color
-function ReportMarker({ report, onClick }) {
-  const colors = { Pending: "#f39c12", "In Progress": "#3498db", Fixed: "#2ecc71", Rejected: "#e74c3c" };
-  return (
-    <Marker
-      longitude={report.location.coordinates[0]}
-      latitude={report.location.coordinates[1]}
-      anchor="bottom"
-      onClick={onClick}
-    >
-      <FaMapMarkerAlt size={34} color={colors[report.status] || "gray"} />
-    </Marker>
-  );
-}
-
-// Single report item + detail modal
+// Single report item + detail modal (unchanged)
 function ReportListItem({ report, idx, onUpvote, onAddComment, userLocation }) {
   const { comments, loading: comLoading } = useComments(report._id, report.commentCount);
   const [newText, setNewText] = useState("");
@@ -179,7 +139,12 @@ function ReportListItem({ report, idx, onUpvote, onAddComment, userLocation }) {
     setPosting(false);
   };
 
-  const statusStyles = { Fixed: { bg: "#28a745", color: "#fff" }, "In Progress": { bg: "#ffc107", color: "#212529" }, Rejected: { bg: "#dc3545", color: "#fff" }, Pending: { bg: "#6c757d", color: "#fff" } };
+  const statusStyles = {
+    Fixed: { bg: "#28a745", color: "#fff" },
+    "In Progress": { bg: "#ffc107", color: "#212529" },
+    Rejected: { bg: "#dc3545", color: "#fff" },
+    Pending: { bg: "#6c757d", color: "#fff" },
+  };
   const { bg, color } = statusStyles[report.status] || statusStyles.Pending;
 
   return (
@@ -228,11 +193,11 @@ function ReportListItem({ report, idx, onUpvote, onAddComment, userLocation }) {
         <Modal.Body>
           {report.imageUrls?.length > 0 && (
             <Carousel className="mb-3">
-              {report.imageUrls.map((url,i) => (
+              {report.imageUrls.map((url, i) => (
                 <Carousel.Item key={i}>
                   <img
                     src={`${BACKEND}${url}`}
-                    alt={`Image ${i+1}`}
+                    alt={`Image ${i + 1}`}
                     className="d-block w-100" />
                 </Carousel.Item>
               ))}
@@ -284,77 +249,198 @@ export default function DashboardPage() {
   const { reports, loading, error, refetch } = useReports(statusFilter, typeFilter);
   const [userLocation, setUserLocation] = useState(null);
   const [viewState, setViewState] = useState({ latitude: 43.65, longitude: -79.38, zoom: 13.5 });
-  const [popupInfo, setPopupInfo] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
 
   // load user location
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          setViewState(v => ({ ...v, latitude: coords.latitude, longitude: coords.longitude }));
-          setUserLocation({ latitude: coords.latitude, longitude: coords.longitude });
-        }
-      );
+      navigator.geolocation.getCurrentPosition(({ coords }) => {
+        setViewState(v => ({ ...v, latitude: coords.latitude, longitude: coords.longitude }));
+        setUserLocation({ latitude: coords.latitude, longitude: coords.longitude });
+      });
     }
   }, []);
 
   const sorted = useMemo(() => {
     if (!userLocation) return reports;
-    return [...reports].sort((a,b) => {
-      const da = haversineDistance(userLocation.latitude, userLocation.longitude, a.location.coordinates[1], a.location.coordinates[0]);
-      const db = haversineDistance(userLocation.latitude, userLocation.longitude, b.location.coordinates[1], b.location.coordinates[0]);
+    return [...reports].sort((a, b) => {
+      const da = haversineDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        a.location.coordinates[1],
+        a.location.coordinates[0]
+      );
+      const db = haversineDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        b.location.coordinates[1],
+        b.location.coordinates[0]
+      );
       return da - db;
     });
   }, [reports, userLocation]);
 
   const total = reports.length;
+  console.log(`reports lenght is ${total}`)
   const resolved = reports.filter(r => r.status === "Fixed").length;
   const avgRes = useMemo(() => {
     const done = reports.filter(r => r.status === "Fixed" && r.updatedAt);
     if (!done.length) return 0;
-    const days = done.reduce((sum, r) => sum + (new Date(r.updatedAt) - new Date(r.createdAt))/(1000*60*60*24), 0);
-    return (days/done.length).toFixed(1);
+    const days = done.reduce((sum, r) => sum + (new Date(r.updatedAt) - new Date(r.createdAt)) / (1000 * 60 * 60 * 24), 0);
+    return (days / done.length).toFixed(1);
   }, [reports]);
 
-  const handleUpvote = async (id, idx) => { try{ await upvoteReport(id); refetch(); }catch{} };
-  const handleAddComment = async (id, text) => { try{ await addComment(id, text); refetch(); }catch{} };
+  const handleUpvote = async (id, idx) => { try { await upvoteReport(id); refetch(); } catch {} };
+  const handleAddComment = async (id, text) => { try { await addComment(id, text); refetch(); } catch {} };
 
   return (
     <Container fluid className="py-4">
       <h2>Dashboard</h2>
-      {(loading || error) && <Alert variant={error?"danger":"info"}>{error?"Failed to load":"Loading reports..."}</Alert>}
-      <Row className="mb-3">
-        <Col xs={6}>
-          <Form.Select value={statusFilter} onChange={e=>setStatus(e.target.value)} className={styles.roundedBox}>
-            {["all","Pending","In Progress","Fixed","Rejected"].map(s=><option key={s} value={s}>{s}</option>)}
-          </Form.Select>
+      {(loading || error) && (
+        <Alert variant={error ? "danger" : "info"}>
+          {error ? "Failed to load" : "Loading reports..."}
+        </Alert>
+      )}
+      <Row className={`mb-3 ${styles.filterRow}`}>
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown onSelect={s => setStatus(s)} className="w-100">
+            <Dropdown.Toggle id="status-dropdown" className="w-100">
+              {statusFilter}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              {['all','Pending','In Progress','Fixed','Rejected'].map(s => (
+                <Dropdown.Item eventKey={s} key={s}>{s}</Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
         </Col>
-        <Col xs={6}>
-          <Form.Select value={typeFilter} onChange={e=>setType(e.target.value)} className={styles.roundedBox}>
-            {["all","Pothole","Streetlight","Graffiti","Other"].map(t=><option key={t} value={t}>{t}</option>)}
-          </Form.Select>
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown onSelect={t => setType(t)} className="w-100">
+            <Dropdown.Toggle id="type-dropdown" className="w-100">
+              {typeFilter}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              {['all','Pothole','Streetlight','Graffiti','Other'].map(t => (
+                <Dropdown.Item eventKey={t} key={t}>{t}</Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
         </Col>
       </Row>
       <Row>
         <Col lg={8} className="mb-4">
-          {!MAPBOX_TOKEN
-            ? <Alert variant="warning">Map token missing.</Alert>
-            : <Map {...viewState} style={{width:'100%',height:400,borderRadius:8}} mapStyle="mapbox://styles/mapbox/streets-v11" mapboxAccessToken={MAPBOX_TOKEN} onMove={e=>setViewState(e.viewState)}>
-                {userLocation && <Marker longitude={userLocation.longitude} latitude={userLocation.latitude} anchor="bottom">
-                  <svg height="20" viewBox="0 0 24 24" style={{fill:'#007bff',stroke:'#fff',strokeWidth:2,transform:'translate(-12px,-24px)'}} />
-                </Marker>}
-                {sorted.map(r=><ReportMarker key={r._id} report={r} onClick={()=>setPopupInfo(r)} />)}
-                {popupInfo && <Popup anchor="top" longitude={popupInfo.location.coordinates[0]} latitude={popupInfo.location.coordinates[1]} onClose={()=>setPopupInfo(null)}>
-                  <strong>{popupInfo.issueType}</strong><br />{popupInfo.description}
-                </Popup>}
-              </Map>}
-          <Card className={`mt-3 ${styles.roundedBox}`}><StatsPanel total={total} resolved={resolved} avgRes={avgRes} /><Card.Footer className={styles.legendBox}>{Object.entries({Pending:'#f39c12','In Progress':'#3498db',Fixed:'#2ecc71',Rejected:'#e74c3c'}).map(([st,c])=><span key={st} className="d-flex align-items-center gap-1"><div style={{width:12,height:12,borderRadius:'50%',background:c}}/><small>{st}</small></span>)}</Card.Footer></Card>
+          {!MAPBOX_TOKEN ? (
+            <Alert variant="warning">Map token missing.</Alert>
+          ) : (
+            <Map
+              {...viewState}
+              style={{ width: '100%', height: 400, borderRadius: 8 }}
+              mapStyle="mapbox://styles/mapbox/streets-v11"
+              mapboxAccessToken={MAPBOX_TOKEN}
+              onMove={e => setViewState(e.viewState)}
+            >
+              {userLocation && (
+                <Marker
+                  longitude={userLocation.longitude}
+                  latitude={userLocation.latitude}
+                  anchor="bottom"
+                >
+                  <svg
+                    height="20"
+                    viewBox="0 0 24 24"
+                    style={{ fill: '#007bff', stroke: '#fff', strokeWidth: 2, transform: 'translate(-12px,-24px)' }}
+                  />
+                </Marker>
+              )}
+              {sorted.map(r => (
+                <Marker
+                  key={r._id}
+                  longitude={r.location.coordinates[0]}
+                  latitude={r.location.coordinates[1]}
+                  anchor="bottom"
+                >
+                  <div
+                    style={{ cursor: 'pointer' }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setSelectedReport(r);
+                      setShowDetail(true);
+                    }}
+                  >
+                    <FaMapMarkerAlt size={34} color={{Pending:'#f39c12','In Progress':'#3498db',Fixed:'#2ecc71',Rejected:'#e74c3c'}[r.status] || 'gray'} />
+                  </div>
+                </Marker>
+              ))}
+            </Map>
+          )}
+          <Card className={`mt-3 ${styles.roundedBox}`}>
+            <StatsPanel total={total} resolved={resolved} avgRes={avgRes} />
+            <Card.Footer className={styles.legendBox}>
+              {Object.entries({Pending:'#f39c12','In Progress':'#3498db',Fixed:'#2ecc71',Rejected:'#e74c3c'}).map(([st,c]) => (
+                <span key={st} className="d-flex align-items-center gap-1">
+                  <div style={{width:12,height:12,borderRadius:'50%',background:c}} />
+                  <small>{st}</small>
+                </span>
+              ))}
+            </Card.Footer>
+          </Card>
         </Col>
         <Col lg={4}>
           <h5>Recent Reports</h5>
-          <ListGroup variant="flush">{sorted.slice(0,6).map((r,i)=><ReportListItem key={r._id} report={r} idx={i} onUpvote={handleUpvote} onAddComment={handleAddComment} userLocation={userLocation}/>)}</ListGroup>
+          <ListGroup variant="flush">
+            {sorted.slice(0,6).map((r,i) => (
+              <ReportListItem
+                key={r._id}
+                report={r}
+                idx={i}
+                onUpvote={handleUpvote}
+                onAddComment={handleAddComment}
+                userLocation={userLocation}
+              />
+            ))}
+          </ListGroup>
         </Col>
       </Row>
+
+      {/* Full-page modal on marker click */}
+      <ReportDetailModal
+        report={selectedReport}
+        show={showDetail}
+        onHide={() => setShowDetail(false)}
+        onUpvote={handleUpvote}
+        onAddComment={handleAddComment}
+        userLocation={userLocation}
+        BACKEND={BACKEND}
+        MAPBOX_TOKEN={MAPBOX_TOKEN}
+      />
     </Container>
   );
+}
+
+// Hook to fetch comments for a report
+function useComments(reportId, commentCount) {
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetch = useCallback(async () => {
+    if (!commentCount) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const c = await getComments(reportId);
+      setComments(c);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [reportId, commentCount]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { comments, loading, error, refetch: fetch }; 
 }
