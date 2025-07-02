@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// src/components/ReportDetailModal.jsx
+import React, { useState, useEffect, useContext } from "react";
 import {
   Modal,
   Carousel,
@@ -6,14 +7,16 @@ import {
   InputGroup,
   Form,
   Button,
+  ButtonGroup,
 } from "react-bootstrap";
-import { getComments } from "../services/reportService";
+import { getComments, updateComment, deleteComment } from "../services/reportService";
+import { AuthContext } from "../context/AuthContext";
 
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const toRad = (deg) => (deg * Math.PI) / 180;
   const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+  const dLat = toRad(lat2 - lat1),
+        dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) *
@@ -41,6 +44,7 @@ export default function ReportDetailModal({
   MAPBOX_TOKEN,
   disableComments = false,
 }) {
+  const { user } = useContext(AuthContext);
   if (!report) return null;
 
   const [comments, setComments] = useState([]);
@@ -49,7 +53,11 @@ export default function ReportDetailModal({
   const [posting, setPosting] = useState(false);
   const [address, setAddress] = useState("");
 
-  // fetch comments
+  // track which comment is being edited
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+
+  // fetch comments on open / report change
   useEffect(() => {
     setLoadingComments(true);
     getComments(report._id)
@@ -87,6 +95,27 @@ export default function ReportDetailModal({
     setPosting(false);
   };
 
+  const startEdit = (c) => {
+    setEditingId(c._id);
+    setEditText(c.text);
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+  const saveEdit = async (commentId) => {
+    if (!editText.trim()) return;
+    await updateComment(commentId, editText.trim());
+    const fresh = await getComments(report._id);
+    setComments(fresh);
+    setEditingId(null);
+  };
+  const remove = async (commentId) => {
+    if (!window.confirm("Delete this comment?")) return;
+    await deleteComment(commentId);
+    setComments((cs) => cs.filter((c) => c._id !== commentId));
+  };
+
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Modal.Header closeButton>
@@ -110,21 +139,56 @@ export default function ReportDetailModal({
         {address && <p><strong>Location:</strong> {address}</p>}
         {distance && <p><strong>Distance:</strong> {distance} km</p>}
         <p><strong>Reporter:</strong> {report.user.name}</p>
-        <p><strong>Reported on:</strong>{" "}
+        <p>
+          <strong>Reported on:</strong>{" "}
           {new Date(report.createdAt).toLocaleString()}
         </p>
         <p><strong>Status:</strong> {report.status}</p>
         <p><strong>Upvotes:</strong> {report.upvoteCount || 0}</p>
         <p><strong>Comments:</strong> {comments.length}</p>
-        <hr/>
+        <hr />
         <h6>Comments</h6>
         {loadingComments ? (
           <Spinner size="sm" animation="border" className="my-2" />
-        ) : comments.map(c => (
-          <div key={c._id} className="px-2 py-1 bg-light rounded mb-2">
-            <strong>{c.user.name}:</strong> {c.text}
-          </div>
-        ))}
+        ) : (
+          comments.map((c) => (
+            <div key={c._id} className="mb-2">
+              {editingId === c._id ? (
+                <InputGroup size="sm" className="mb-1">
+                  <Form.Control
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                  />
+                  <ButtonGroup>
+                    <Button variant="outline-success" onClick={() => saveEdit(c._id)}>
+                      Save
+                    </Button>
+                    <Button variant="outline-secondary" onClick={cancelEdit}>
+                      Cancel
+                    </Button>
+                  </ButtonGroup>
+                </InputGroup>
+              ) : (
+                <div className="px-2 py-1 bg-light rounded d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>{c.user.name}:</strong> {c.text}
+                    <div className="text-muted small">{timeAgo(c.createdAt)}</div>
+                  </div>
+                  {c.user._id === user?._id && !disableComments && (
+                    <ButtonGroup size="sm">
+                      <Button variant="outline-primary" onClick={() => startEdit(c)}>
+                        Edit
+                      </Button>
+                      <Button variant="outline-danger" onClick={() => remove(c._id)}>
+                        Delete
+                      </Button>
+                    </ButtonGroup>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        )}
 
         {!disableComments && (
           <InputGroup className="mt-3">
@@ -132,7 +196,7 @@ export default function ReportDetailModal({
               placeholder="Write a comment…"
               size="sm"
               value={newText}
-              onChange={e => setNewText(e.target.value)}
+              onChange={(e) => setNewText(e.target.value)}
             />
             <Button
               variant="primary"
@@ -148,6 +212,5 @@ export default function ReportDetailModal({
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>Close</Button>
       </Modal.Footer>
-    </Modal>
-  );
+    </Modal>)
 }
