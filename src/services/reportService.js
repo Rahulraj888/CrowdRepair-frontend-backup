@@ -48,6 +48,17 @@ export async function addComment(reportId, text) {
   return data;
 }
 
+// edit an existing comment
+export async function updateComment(commentId, text) {
+  const { data } = await api.put(`/comments/${commentId}`, { text });
+  return data;
+}
+
+// delete a comment
+export async function deleteComment(commentId) {
+  await api.delete(`/comments/${commentId}`);
+}
+
 // existing exports…
 export const getHeatmap = () =>
   api.get('/reports/heatmap').then(res => res.data);
