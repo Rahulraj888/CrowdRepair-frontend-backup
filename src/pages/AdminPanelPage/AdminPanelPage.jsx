@@ -28,12 +28,17 @@ export default function AdminPanelPage() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  // Fetch stats
+  // Fetch stats once
   useEffect(() => {
     getAdminDashboard()
       .then(setStats)
       .catch(() => setError('Failed to load dashboard stats.'));
   }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setReportsData(d => ({ ...d, page: 1 }));
+  }, [filters]);
 
   // Refresh reports helper
   const refreshReports = useCallback(async () => {
@@ -45,10 +50,12 @@ export default function AdminPanelPage() {
     }
   }, [filters, reportsData.page, reportsData.limit]);
 
-  // Fetch reports on filter/page change
-  useEffect(() => { refreshReports(); }, [refreshReports]);
+  // Fetch reports on filter or page change
+  useEffect(() => {
+    refreshReports();
+  }, [refreshReports]);
 
-  // Update status
+  // Update status helper
   const updateStatus = useCallback(async (id, status, reason) => {
     try {
       await updateReportStatus(id, status, reason);
@@ -75,12 +82,33 @@ export default function AdminPanelPage() {
   };
 
   const getStatusVariant = s => ({ Fixed: 'success', 'In Progress': 'warning', Rejected: 'danger' }[s] || 'secondary');
-  const totalPages = Math.ceil(reportsData.total / reportsData.limit);
+  const totalPages = Math.max(1, Math.ceil(reportsData.total / reportsData.limit));
+
+  // Render a window of page buttons
+  const renderPageItems = () => {
+    const items = [];
+    const start = Math.max(1, reportsData.page - 2);
+    const end = Math.min(totalPages, reportsData.page + 2);
+    if (start > 1) items.push(<Pagination.Ellipsis key="start-ellipsis" />);
+    for (let p = start; p <= end; p++) {
+      items.push(
+        <Pagination.Item
+          key={p}
+          active={p === reportsData.page}
+          onClick={() => setReportsData(d => ({ ...d, page: p }))}
+        >
+          {p}
+        </Pagination.Item>
+      );
+    }
+    if (end < totalPages) items.push(<Pagination.Ellipsis key="end-ellipsis" />);
+    return items;
+  };
 
   return (
     <Container fluid className="py-4">
       <h2>Admin Panel</h2>
-      {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+      {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
       {/* Summary Cards */}
       <Row className="g-3 mb-4">
@@ -99,17 +127,23 @@ export default function AdminPanelPage() {
         ))}
       </Row>
 
-      {/* Filters and header */}
+      {/* Filters & Reports Table */}
       <Card className="mb-4">
         <Card.Header className="d-flex justify-content-between align-items-center">
           <div>
-            <Form.Select size="sm" className="me-2 d-inline-block w-auto" value={filters.status}
+            <Form.Select size="sm" className="me-2 d-inline-block w-auto"
+              value={filters.status}
               onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}>
-              {['all','Pending','In Progress','Fixed','Rejected'].map(s => <option key={s} value={s}>{s}</option>)}
+              {['all','Pending','In Progress','Fixed','Rejected'].map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </Form.Select>
-            <Form.Select size="sm" className="d-inline-block w-auto" value={filters.type}
+            <Form.Select size="sm" className="d-inline-block w-auto"
+              value={filters.type}
               onChange={e => setFilters(f => ({ ...f, type: e.target.value }))}>
-              {['all','Pothole','Streetlight','Graffiti','Other'].map(t => <option key={t} value={t}>{t}</option>)}
+              {['all','Pothole','Streetlight','Graffiti','Other'].map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
             </Form.Select>
           </div>
           <div>Recent Reports</div>
@@ -118,9 +152,8 @@ export default function AdminPanelPage() {
         <Table bordered hover responsive className="mb-0">
           <thead>
             <tr>
-              <th>ID</th><th>Images</th><th>Type</th>
-              <th>Location</th><th>Reporter</th><th>Status</th>
-              <th>Reason</th><th>Details</th><th>Action</th>
+              <th>ID</th><th>Images</th><th>Type</th><th>Location</th>
+              <th>Reporter</th><th>Status</th><th>Reason</th><th>Details</th><th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -128,21 +161,19 @@ export default function AdminPanelPage() {
               <tr key={r._id}>
                 <td className={styles.wrapCell}>{r._id}</td>
                 <td>
-                  {r.imageUrls?.length > 0
+                  {r.imageUrls?.length
                     ? r.imageUrls.map((url,idx) => (
-                        <Image key={idx} src={`${BACKEND}${url}`} className={styles.thumbnail}
-                          thumbnail style={{ width: 50, height:50, objectFit:'cover', marginRight:4 }} />
+                        <Image key={idx} src={`${BACKEND}${url}`} thumbnail
+                          style={{ width:50, height:50, objectFit:'cover', marginRight:4 }}
+                          className={styles.thumbnail} />
                       ))
-                    : '—'
-                  }
+                    : '—'}
                 </td>
                 <td>{r.issueType}</td>
-                {/* <td className={styles.wrapCell}>{r.description}</td> */}
                 <td className={styles.wrapCell}>📍 {r.address}</td>
                 <td>{r.user.name}</td>
-                {/* <td>{new Date(r.createdAt).toLocaleDateString()}</td> */}
                 <td><Badge bg={getStatusVariant(r.status)}>{r.status}</Badge></td>
-                <td className={styles.wrapCell}>{r.status==='Rejected'?r.rejectReason:'—'}</td>
+                <td className={styles.wrapCell}>{r.status === 'Rejected' ? r.rejectReason : '—'}</td>
                 <td>
                   <Button size="sm" variant="link" onClick={() => { setSelectedReport(r); setShowDetail(true); }}>
                     View
@@ -151,7 +182,9 @@ export default function AdminPanelPage() {
                 <td>
                   <Form.Select size="sm" value={r.status}
                     onChange={e => handleStatusSelect(r._id, e.target.value)}>
-                    {['Pending','In Progress','Fixed','Rejected'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['Pending','In Progress','Fixed','Rejected'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </Form.Select>
                 </td>
               </tr>
@@ -161,16 +194,23 @@ export default function AdminPanelPage() {
 
         <Card.Footer className="d-flex justify-content-center">
           <Pagination size="sm">
-            <Pagination.First disabled={reportsData.page===1} onClick={() => setReportsData(d => ({ ...d, page:1 }))} />
-            <Pagination.Prev disabled={reportsData.page===1} onClick={() => setReportsData(d => ({ ...d, page:d.page-1 }))} />
-            {Array.from({ length: totalPages }, (_,i) => (
-              <Pagination.Item key={i+1} active={i+1===reportsData.page}
-                onClick={() => setReportsData(d => ({ ...d, page:i+1 }))}>
-                {i+1}
-              </Pagination.Item>
-            ))}
-            <Pagination.Next disabled={reportsData.page===totalPages} onClick={() => setReportsData(d => ({ ...d, page:d.page+1 }))} />
-            <Pagination.Last disabled={reportsData.page===totalPages} onClick={() => setReportsData(d => ({ ...d, page:totalPages }))} />
+            <Pagination.First
+              disabled={reportsData.page === 1}
+              onClick={() => setReportsData(d => ({ ...d, page: 1 }))}
+            />
+            <Pagination.Prev
+              disabled={reportsData.page === 1}
+              onClick={() => setReportsData(d => ({ ...d, page: d.page - 1 }))}
+            />
+            {renderPageItems()}
+            <Pagination.Next
+              disabled={reportsData.page >= totalPages}
+              onClick={() => setReportsData(d => ({ ...d, page: d.page + 1 }))}
+            />
+            <Pagination.Last
+              disabled={reportsData.page >= totalPages}
+              onClick={() => setReportsData(d => ({ ...d, page: totalPages }))}
+            />
           </Pagination>
         </Card.Footer>
 
@@ -189,7 +229,6 @@ export default function AdminPanelPage() {
             <Button variant="danger" disabled={!rejectReason.trim()} onClick={confirmReject}>Reject</Button>
           </Modal.Footer>
         </Modal>
-
       </Card>
 
       {/* Charts Section */}
@@ -208,18 +247,14 @@ export default function AdminPanelPage() {
         <Col md={6}>
           <Card className="p-3">
             <h6>Resolution Time Trend</h6>
-            <LineChart
-              width={300}
-              height={200}
-              data={[
-                { month: 'Jan', avg: 5.2 },
-                { month: 'Feb', avg: 4.8 },
-                { month: 'Mar', avg: 4.5 },
-                { month: 'Apr', avg: 4.1 },
-                { month: 'May', avg: 3.8 },
-                { month: 'Jun', avg: 3.5 },
-              ]}
-            >
+            <LineChart width={300} height={200} data={[
+              { month: 'Jan', avg: 5.2 },
+              { month: 'Feb', avg: 4.8 },
+              { month: 'Mar', avg: 4.5 },
+              { month: 'Apr', avg: 4.1 },
+              { month: 'May', avg: 3.8 },
+              { month: 'Jun', avg: 3.5 },
+            ]}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
