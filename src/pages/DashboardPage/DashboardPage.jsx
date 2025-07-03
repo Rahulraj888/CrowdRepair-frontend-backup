@@ -36,7 +36,6 @@ const STATUS_COLORS = {
   Pending: "#f39c12",
   "In Progress": "#3498db",
   Fixed: "#2ecc71",
-  Rejected: "#e74c3c",
 };
 
 // Haversine formula
@@ -75,7 +74,7 @@ function useReports(statusFilter, typeFilter) {
       if (statusFilter !== "all") filters.status = statusFilter;
       if (typeFilter !== "all") filters.type = typeFilter;
       const all = await getReports(filters);
-      setReports(all.filter((r) => r.user._id !== user?._id));
+      setReports(all.filter((r) => r.user._id !== user?._id && r.status !== "Rejected"));
     } catch (err) {
       setError(err);
     } finally {
@@ -313,7 +312,6 @@ export default function DashboardPage() {
                 "Pending",
                 "In Progress",
                 "Fixed",
-                "Rejected",
               ].map((s) => (
                 <Dropdown.Item eventKey={s} key={s}>
                   {s}
