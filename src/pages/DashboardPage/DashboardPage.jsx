@@ -36,7 +36,6 @@ const STATUS_COLORS = {
   Pending: "#f39c12",
   "In Progress": "#3498db",
   Fixed: "#2ecc71",
-  Rejected: "#e74c3c",
 };
 
 // Haversine formula
@@ -75,7 +74,7 @@ function useReports(statusFilter, typeFilter) {
       if (statusFilter !== "all") filters.status = statusFilter;
       if (typeFilter !== "all") filters.type = typeFilter;
       const all = await getReports(filters);
-      setReports(all.filter((r) => r.user !== user?._id));
+      setReports(all.filter((r) => r.user._id !== user?._id && r.status !== "Rejected"));
     } catch (err) {
       setError(err);
     } finally {
@@ -198,19 +197,16 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
 }
 
 export default function DashboardPage() {
-  const { reports, loading, error, refetch } = useReports(/* statusFilter, typeFilter can be added */);
   const [statusFilter, setStatus] = useState("all");
   const [typeFilter, setType] = useState("all");
+
+  const { reports, loading, error, refetch } = useReports(statusFilter, typeFilter);
+
   const [userLocation, setUserLocation] = useState(null);
-  const [viewState, setViewState] = useState({
-    latitude: 43.65,
-    longitude: -79.38,
-    zoom: 13.5,
-  });
+  const [viewState, setViewState] = useState({ latitude: 43.65, longitude: -79.38, zoom: 13.5 });
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  // pagination
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE));
 
@@ -299,35 +295,48 @@ export default function DashboardPage() {
       )}
 
       <Row className={`mb-3 ${styles.filterRow}`}>
-        <Col xs={12} sm={6}>
-          <Dropdown onSelect={setStatus} className="w-100">
-            <Dropdown.Toggle className="w-100">
-              {statusFilter}
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown
+            onSelect={(s) => setStatus(s)}
+            className="w-100"
+          >
+            <Dropdown.Toggle variant="light" className="w-100 text-start border">
+              {statusFilter ==="all"?"Filter By Status":statusFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              {["all", "Pending", "In Progress", "Fixed", "Rejected"].map(
-                (s) => (
-                  <Dropdown.Item eventKey={s} key={s}>
-                    {s}
-                  </Dropdown.Item>
-                )
-              )}
+              {[
+                "all",
+                "Pending",
+                "In Progress",
+                "Fixed",
+              ].map((s) => (
+                <Dropdown.Item eventKey={s} key={s}>
+                  {s}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
-        <Col xs={12} sm={6}>
-          <Dropdown onSelect={setType} className="w-100">
-            <Dropdown.Toggle className="w-100">
-              {typeFilter}
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown
+            onSelect={(t) => setType(t)}
+            className="w-100"
+          >
+            <Dropdown.Toggle  variant="light" className="w-100 text-start border">
+              {typeFilter==="all"?"Filter By Type":typeFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map(
-                (t) => (
-                  <Dropdown.Item eventKey={t} key={t}>
-                    {t}
-                  </Dropdown.Item>
-                )
-              )}
+              {[
+                "all",
+                "Pothole",
+                "Streetlight",
+                "Graffiti",
+                "Other",
+              ].map((t) => (
+                <Dropdown.Item eventKey={t} key={t}>
+                  {t}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>

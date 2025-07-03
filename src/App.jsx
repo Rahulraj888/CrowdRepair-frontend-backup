@@ -20,7 +20,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage/ChangePasswordPage';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
-import MyReportsPage from './pages/MyReportsPage.jsx/MyReportsPage';
+import MyReportsPage from './pages/MyReportsPage/MyReportsPage';
 import EditReportPage from './pages/EditReportPage/EditReportPage';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 

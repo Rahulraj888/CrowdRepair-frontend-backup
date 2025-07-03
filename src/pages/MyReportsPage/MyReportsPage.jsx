@@ -23,7 +23,7 @@ import ReportDetailModal from "../../components/ReportDetailModal";
 
 const BANNER_SRC = "/my-reports.png";
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const PAGE_LIMIT = 10;
+const PAGE_LIMIT = 5;
 
 // Hook: filter and sort reports
 function useFilteredSortedReports(reports, status, type, sortOrder) {
@@ -41,28 +41,34 @@ function useFilteredSortedReports(reports, status, type, sortOrder) {
 // Component: stats cards row
 function StatsCards({ stats }) {
   const config = [
-    { key: 'total', label: 'Total', value: stats.total, variant: 'primary', textColor: 'white' },
-    { key: 'fixed', label: 'Fixed', value: stats.fixed, variant: 'success', textColor: 'white' },
-    { key: 'pending', label: 'Pending', value: stats.pending, variant: 'warning', textColor: 'dark' },
-    { key: 'inProgress', label: 'In Progress', value: stats.inProgress, variant: 'info', textColor: 'white' },
-    { key: 'rejected', label: 'Rejected', value: stats.rejected, variant: 'danger', textColor: 'white' },
+    { key: 'total', label: 'Total', value: stats.total, shadowClass: 'shadow-blue', textColor: '#0d6efd' },
+    { key: 'fixed', label: 'Fixed', value: stats.fixed, shadowClass: 'shadow-green', textColor: '#198754' },
+    { key: 'pending', label: 'Pending', value: stats.pending, shadowClass: 'shadow-yellow', textColor: '#ffc107' },
+    { key: 'inProgress', label: 'In Progress', value: stats.inProgress, shadowClass: 'shadow-cyan', textColor: '#0dcaf0' },
+    { key: 'rejected', label: 'Rejected', value: stats.rejected, shadowClass: 'shadow-red', textColor: '#dc3545' },
   ];
-
-  return (
-    <Row className="mb-4 gx-3 justify-content-center">
-      {config.map(c => (
-        <Col key={c.key} xs={6} md={2}>
-          <Card bg={c.variant} text={c.textColor} className="text-center">
-            <Card.Body>
-              <Card.Title>{c.label}</Card.Title>
-              <Card.Text as="h3">{c.value}</Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-      ))}
-    </Row>
-  );
-}
+  
+  
+    return (
+  <Row className="gx-3 gy-3 justify-content-center">
+  
+    {config.map(c => (
+      <Col key={c.key} xs={6} sm={6} md={2} className="mb-3">
+        <Card className={`text-center ${styles.statusCard} ${styles[c.shadowClass]} w-100`}>
+          <Card.Body className="py-3">
+            <Card.Title className="text-muted">{c.label}</Card.Title>
+            <div className={styles.numberBadge} style={{ color: c.textColor }}>
+              {c.value}
+            </div>
+          </Card.Body>
+        </Card>
+      </Col>
+    ))}
+  </Row>
+  
+    );
+  }
+  
 
 // Get Bootstrap variant for status badge
 function getStatusVariant(status) {
@@ -100,7 +106,7 @@ export default function MyReportsPage() {
     setLoading(true);
     setError("");
     getReports({ status: statusFilter, type: typeFilter })
-      .then(all => setReports(all.filter(r => r.user === userId)))
+      .then(all => setReports(all.filter(r => r.user._id === userId)))
       .catch(err => {
         console.error(err);
         setError("Failed to load reports.");
@@ -146,7 +152,7 @@ export default function MyReportsPage() {
   return (
     <Container fluid className="py-4">
       {/* Banner */}
-      <div className="d-flex justify-content-center mb-4">
+      <div className="d-none d-md-flex justify-content-center mb-4">
         <Image src={BANNER_SRC} alt="Thank you for reporting" fluid className={styles.banner} />
       </div>
 
@@ -160,8 +166,49 @@ export default function MyReportsPage() {
 
       {/* Filters & Sort */}
       <Row className="mb-3 gx-2">
-        {/* status, type, sort dropdowns here (unchanged) */}
-      </Row>
+      <Col xs={12} md={4}>
+        <Dropdown as={ButtonGroup} className="w-100">
+          <Dropdown.Toggle variant="light" className="w-100 text-start border">
+            {statusFilter === 'all' ? 'All Statuses' : statusFilter}
+          </Dropdown.Toggle>
+          <Dropdown.Menu className="w-100">
+            {['all','Pending','In Progress','Fixed','Rejected'].map(s => (
+              <Dropdown.Item key={s} active={s===statusFilter} onClick={() => setStatusFilter(s)}>
+                {s==='all'? 'All Statuses': s}
+              </Dropdown.Item>
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
+      </Col>
+      <Col xs={12} md={4}>
+        <Dropdown as={ButtonGroup} className="w-100">
+          <Dropdown.Toggle variant="light" className="w-100 text-start border">
+            {typeFilter === 'all' ? 'All Types' : typeFilter}
+          </Dropdown.Toggle>
+          <Dropdown.Menu className="w-100">
+            {['all','Pothole','Streetlight','Graffiti','Other'].map(t => (
+              <Dropdown.Item key={t} active={t===typeFilter} onClick={() => setTypeFilter(t)}>
+                {t==='all'? 'All Types': t}
+              </Dropdown.Item>
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
+      </Col>
+      <Col xs={12} md={4}>
+        <Dropdown as={ButtonGroup} className="w-100">
+          <Dropdown.Toggle variant="light" className="w-100 text-start border">
+            {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
+          </Dropdown.Toggle>
+          <Dropdown.Menu className="w-100">
+            {[{label:'Newest First',value:'desc'},{label:'Oldest First',value:'asc'}].map(o => (
+              <Dropdown.Item key={o.value} active={o.value===sortOrder} onClick={() => setSortOrder(o.value)}>
+                {o.label}
+              </Dropdown.Item>
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
+      </Col>
+    </Row>
 
       {/* No results */}
       {filtered.length === 0 ? (
