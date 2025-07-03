@@ -39,3 +39,38 @@
     width: 80%;
     height: 450px;
   }
+
+  .statusCard {
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  transition: 0.3s ease;
+  padding: 0.75rem;
+}
+
+/* Colored number badge */
+.numberBadge {
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  box-shadow: none;
+  display: inline-block;
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+ 
+}
+
+/* Colored shadows around card + matching badge colors */
+.shadow-blue    { box-shadow: 0 0 15px rgba(0, 123, 255, 0.3); }
+.shadow-green   { box-shadow: 0 0 15px rgba(25, 135, 84, 0.3); }
+.shadow-yellow  { box-shadow: 0 0 15px rgba(255, 193, 7, 0.3); }
+.shadow-cyan    { box-shadow: 0 0 15px rgba(13, 202, 240, 0.3); }
+.shadow-red     { box-shadow: 0 0 15px rgba(220, 53, 69, 0.3); }
+
+
+.heading
+{
+  margin-top: 2%;
+  margin-bottom: 2%;
+}

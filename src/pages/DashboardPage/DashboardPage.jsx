@@ -18,18 +18,20 @@ import {
   Image,
   Spinner,
   Alert,
-  Pagination,
 } from "react-bootstrap";
 import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-
 import ReportDetailModal from "../../components/ReportDetailModal";
 import { AuthContext } from "../../context/AuthContext";
-import { getReports, upvoteReport, addComment } from "../../services/reportService";
+import {
+  getReports,
+  upvoteReport,
+  addComment,
+} from "../../services/reportService";
 
-const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BACKEND =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-const PAGE_SIZE = 5;
 
 // Status → color map
 const STATUS_COLORS = {
@@ -47,8 +49,14 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+  return (
+    R *
+    2 *
+    Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  );
 }
 
 // “2h ago” or date
@@ -57,7 +65,9 @@ function timeAgo(dateStr) {
   const hrs = Math.floor(diff / (1000 * 60 * 60));
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
-  return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
+  return days < 7
+    ? `${days}d ago`
+    : new Date(dateStr).toLocaleDateString();
 }
 
 // Fetch & filter reports
@@ -72,10 +82,14 @@ function useReports(statusFilter, typeFilter) {
     setError(null);
     try {
       const filters = {};
-      if (statusFilter !== "all") filters.status = statusFilter;
-      if (typeFilter !== "all") filters.type = typeFilter;
+      if (statusFilter !== "all")
+        filters.status = statusFilter;
+      if (typeFilter !== "all")
+        filters.type = typeFilter;
       const all = await getReports(filters);
-      setReports(all.filter((r) => r.user !== user?._id));
+      setReports(
+        all.filter((r) => r.user !== user?._id)
+      );
     } catch (err) {
       setError(err);
     } finally {
@@ -110,9 +124,17 @@ function StatsPanel({ total, resolved, avgRes }) {
   );
 }
 
-// Single report item + detail button
-function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
+// List-item + detail button
+function ReportListItem({
+  report,
+  idx,
+  onUpvote,
+  onAddComment,
+  userLocation,
+}) {
   const [showDetail, setShowDetail] = useState(false);
+  const [newText, setNewText] = useState("");
+  const [posting, setPosting] = useState(false);
   const [address, setAddress] = useState(null);
 
   // reverse-geocode
@@ -123,7 +145,8 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
     )
       .then((r) => r.json())
       .then((d) => {
-        if (d.features?.[0]) setAddress(d.features[0].place_name);
+        if (d.features?.[0])
+          setAddress(d.features[0].place_name);
       })
       .catch(() => {});
   }, [report.location.coordinates]);
@@ -137,6 +160,14 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
       ).toFixed(1)
     : null;
 
+  const handlePost = async () => {
+    if (!newText.trim()) return;
+    setPosting(true);
+    await onAddComment(report._id, newText);
+    setNewText("");
+    setPosting(false);
+  };
+
   return (
     <>
       <ListGroup.Item className={`py-3 ${styles.reportCard}`}>
@@ -146,7 +177,11 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
               <Image
                 src={`${BACKEND}${report.imageUrls[0]}`}
                 thumbnail
-                style={{ width: 80, height: 60, objectFit: "cover" }}
+                style={{
+                  width: 80,
+                  height: 60,
+                  objectFit: "cover",
+                }}
                 className="me-3"
               />
             )}
@@ -156,13 +191,19 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
                 {timeAgo(report.createdAt)}
                 {distance && ` • ${distance}km away`}
               </div>
-              <p className="mt-1 small">{report.description}</p>
-              {address && <p className="mt-1 small">{address}</p>}
+              <p className="mt-1 small">
+                {report.description}
+              </p>
+              {address && (
+                <p className="mt-1 small">{address}</p>
+              )}
             </div>
           </div>
           <span
             style={{
-              backgroundColor: STATUS_COLORS[report.status] || "#6c757d",
+              backgroundColor:
+                STATUS_COLORS[report.status] ||
+                "#6c757d",
               color: "#fff",
             }}
             className={styles.statusBadge}
@@ -170,14 +211,26 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
             {report.status}
           </span>
         </div>
-        <div className="mt-2 d-flex gap-3">
-          <Button variant="link" size="sm" onClick={() => setShowDetail(true)}>
+        <div className="mt-2 d-flex gap-3 align-items-center">
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => setShowDetail(true)}
+          >
             View Details
           </Button>
-          <Button variant="link" size="sm" onClick={() => onUpvote(report._id)}>
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => onUpvote(report._id, idx)}
+          >
             👍 {report.upvoteCount || 0}
           </Button>
-          <Button variant="link" size="sm" onClick={() => setShowDetail(true)}>
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => setShowDetail(true)}
+          >
             💬 {report.commentCount || 0}
           </Button>
         </div>
@@ -187,8 +240,10 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
         report={report}
         show={showDetail}
         onHide={() => setShowDetail(false)}
-        onUpvote={() => onUpvote(report._id)}
-        onAddComment={(text) => onAddComment(report._id, text)}
+        onUpvote={() => onUpvote(report._id, idx)}
+        onAddComment={(text) =>
+          onAddComment(report._id, text)
+        }
         userLocation={userLocation}
         BACKEND={BACKEND}
         MAPBOX_TOKEN={MAPBOX_TOKEN}
@@ -198,9 +253,13 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
 }
 
 export default function DashboardPage() {
-  const { reports, loading, error, refetch } = useReports(/* statusFilter, typeFilter can be added */);
+  const { user } = useContext(AuthContext);
   const [statusFilter, setStatus] = useState("all");
   const [typeFilter, setType] = useState("all");
+  const { reports, loading, error, refetch } = useReports(
+    statusFilter,
+    typeFilter
+  );
   const [userLocation, setUserLocation] = useState(null);
   const [viewState, setViewState] = useState({
     latitude: 43.65,
@@ -210,28 +269,26 @@ export default function DashboardPage() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  // pagination
-  const [page, setPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE));
-
-  // reset page when filters change
-  useEffect(() => setPage(1), [statusFilter, typeFilter]);
-
   // geolocation
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(({ coords }) => {
-      setViewState((v) => ({
-        ...v,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      }));
-      setUserLocation({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
-    });
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          setViewState((v) => ({
+            ...v,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          }));
+          setUserLocation({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          });
+        }
+      );
+    }
   }, []);
 
+  // sort by distance
   const sorted = useMemo(() => {
     if (!userLocation) return reports;
     return [...reports].sort((a, b) => {
@@ -251,43 +308,38 @@ export default function DashboardPage() {
     });
   }, [reports, userLocation]);
 
-  const paginated = sorted.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
-  );
-
   const total = reports.length;
-  const resolved = reports.filter((r) => r.status === "Fixed").length;
+  const resolved = reports.filter(
+    (r) => r.status === "Fixed"
+  ).length;
   const avgRes = useMemo(() => {
-    const done = reports.filter((r) => r.status === "Fixed" && r.updatedAt);
+    const done = reports.filter(
+      (r) => r.status === "Fixed" && r.updatedAt
+    );
     if (!done.length) return 0;
-    const days =
-      done.reduce(
-        (sum, r) =>
-          sum +
-          (new Date(r.updatedAt) - new Date(r.createdAt)) /
-            (1000 * 60 * 60 * 24),
-        0
-      ) / done.length;
-    return days.toFixed(1);
+    const days = done.reduce(
+      (sum, r) =>
+        sum +
+        (new Date(r.updatedAt) -
+          new Date(r.createdAt)) /
+          (1000 * 60 * 60 * 24),
+      0
+    );
+    return (days / done.length).toFixed(1);
   }, [reports]);
 
-  const handleUpvote = useCallback(
-    async (id) => {
+  const handleUpvote = async (id, idx) => {
+    try {
       await upvoteReport(id);
       refetch();
-    },
-    [refetch]
-  );
-
-  const handleAddComment = useCallback(
-    async (id, text) => {
-      console.log("posting comment", { id, text });
+    } catch {}
+  };
+  const handleAddComment = async (id, text) => {
+    try {
       await addComment(id, text);
       refetch();
-    },
-    [refetch]
-  );
+    } catch {}
+  };
 
   return (
     <Container fluid className="py-4">
@@ -299,35 +351,49 @@ export default function DashboardPage() {
       )}
 
       <Row className={`mb-3 ${styles.filterRow}`}>
-        <Col xs={12} sm={6}>
-          <Dropdown onSelect={setStatus} className="w-100">
-            <Dropdown.Toggle className="w-100">
-              {statusFilter}
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown
+            onSelect={(s) => setStatus(s)}
+            className="w-100"
+          >
+            <Dropdown.Toggle variant="light" className="w-100 text-start border">
+              {statusFilter ==="all"?"Filter By Status":statusFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              {["all", "Pending", "In Progress", "Fixed", "Rejected"].map(
-                (s) => (
-                  <Dropdown.Item eventKey={s} key={s}>
-                    {s}
-                  </Dropdown.Item>
-                )
-              )}
+              {[
+                "all",
+                "Pending",
+                "In Progress",
+                "Fixed",
+                "Rejected",
+              ].map((s) => (
+                <Dropdown.Item eventKey={s} key={s}>
+                  {s}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
-        <Col xs={12} sm={6}>
-          <Dropdown onSelect={setType} className="w-100">
-            <Dropdown.Toggle className="w-100">
-              {typeFilter}
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown
+            onSelect={(t) => setType(t)}
+            className="w-100"
+          >
+            <Dropdown.Toggle  variant="light" className="w-100 text-start border">
+              {typeFilter==="all"?"Filter By Type":typeFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map(
-                (t) => (
-                  <Dropdown.Item eventKey={t} key={t}>
-                    {t}
-                  </Dropdown.Item>
-                )
-              )}
+              {[
+                "all",
+                "Pothole",
+                "Streetlight",
+                "Graffiti",
+                "Other",
+              ].map((t) => (
+                <Dropdown.Item eventKey={t} key={t}>
+                  {t}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
@@ -336,7 +402,9 @@ export default function DashboardPage() {
       <Row>
         <Col lg={8} className="mb-4">
           {!MAPBOX_TOKEN ? (
-            <Alert variant="warning">Map token missing.</Alert>
+            <Alert variant="warning">
+              Map token missing.
+            </Alert>
           ) : (
             <Map
               {...viewState}
@@ -363,7 +431,7 @@ export default function DashboardPage() {
                   />
                 </Marker>
               )}
-              {paginated.map((r) => (
+              {sorted.map((r) => (
                 <Marker
                   key={r._id}
                   longitude={r.location.coordinates[0]}
@@ -380,7 +448,9 @@ export default function DashboardPage() {
                   >
                     <FaMapMarkerAlt
                       size={34}
-                      color={STATUS_COLORS[r.status] || "gray"}
+                      color={
+                        STATUS_COLORS[r.status] || "gray"
+                      }
                     />
                   </div>
                 </Marker>
@@ -388,21 +458,30 @@ export default function DashboardPage() {
             </Map>
           )}
           <Card className={`mt-3 ${styles.roundedBox}`}>
-            <StatsPanel total={total} resolved={resolved} avgRes={avgRes} />
+            <StatsPanel
+              total={total}
+              resolved={resolved}
+              avgRes={avgRes}
+            />
             <Card.Footer className={styles.legendBox}>
-              {Object.entries(STATUS_COLORS).map(([st, c]) => (
-                <span key={st} className="d-flex align-items-center gap-1">
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: "50%",
-                      background: c,
-                    }}
-                  />
-                  <small>{st}</small>
-                </span>
-              ))}
+              {Object.entries(STATUS_COLORS).map(
+                ([st, c]) => (
+                  <span
+                    key={st}
+                    className="d-flex align-items-center gap-1"
+                  >
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        background: c,
+                      }}
+                    />
+                    <small>{st}</small>
+                  </span>
+                )
+              )}
             </Card.Footer>
           </Card>
         </Col>
@@ -410,43 +489,17 @@ export default function DashboardPage() {
         <Col lg={4}>
           <h5>Recent Reports</h5>
           <ListGroup variant="flush">
-            {paginated.map((r) => (
+            {sorted.slice(0, 6).map((r, i) => (
               <ReportListItem
                 key={r._id}
                 report={r}
+                idx={i}
                 onUpvote={handleUpvote}
                 onAddComment={handleAddComment}
                 userLocation={userLocation}
               />
             ))}
           </ListGroup>
-
-          <div className="d-flex justify-content-center mt-2">
-            <Pagination size="sm">
-              <Pagination.First disabled={page === 1} onClick={() => setPage(1)} />
-              <Pagination.Prev
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              />
-              {Array.from({ length: totalPages }, (_, idx) => (
-                <Pagination.Item
-                  key={idx + 1}
-                  active={idx + 1 === page}
-                  onClick={() => setPage(idx + 1)}
-                >
-                  {idx + 1}
-                </Pagination.Item>
-              ))}
-              <Pagination.Next
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              />
-              <Pagination.Last
-                disabled={page === totalPages}
-                onClick={() => setPage(totalPages)}
-              />
-            </Pagination>
-          </div>
         </Col>
       </Row>
 
@@ -454,8 +507,8 @@ export default function DashboardPage() {
         report={selectedReport}
         show={showDetail}
         onHide={() => setShowDetail(false)}
-        onUpvote={() => handleUpvote(selectedReport._id)}
-        onAddComment={(text) => handleAddComment(selectedReport._id, text)}
+        onUpvote={handleUpvote}
+        onAddComment={handleAddComment}
         userLocation={userLocation}
         BACKEND={BACKEND}
         MAPBOX_TOKEN={MAPBOX_TOKEN}
