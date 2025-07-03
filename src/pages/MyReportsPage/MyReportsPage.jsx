@@ -23,7 +23,7 @@ import ReportDetailModal from "../../components/ReportDetailModal";
 
 const BANNER_SRC = "/my-reports.png";
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const PAGE_LIMIT = 10;
+const PAGE_LIMIT = 5;
 
 // Hook: filter and sort reports
 function useFilteredSortedReports(reports, status, type, sortOrder) {
@@ -53,8 +53,7 @@ function StatsCards({ stats }) {
   <Row className="gx-3 gy-3 justify-content-center">
   
     {config.map(c => (
-      <Col key={c.key} xs={12} sm={6} md={2} className="mb-3">
-  
+      <Col key={c.key} xs={6} sm={6} md={2} className="mb-3">
         <Card className={`text-center ${styles.statusCard} ${styles[c.shadowClass]} w-100`}>
           <Card.Body className="py-3">
             <Card.Title className="text-muted">{c.label}</Card.Title>
@@ -153,7 +152,7 @@ export default function MyReportsPage() {
   return (
     <Container fluid className="py-4">
       {/* Banner */}
-      <div className="d-flex justify-content-center mb-4">
+      <div className="d-none d-md-flex justify-content-center mb-4">
         <Image src={BANNER_SRC} alt="Thank you for reporting" fluid className={styles.banner} />
       </div>
 

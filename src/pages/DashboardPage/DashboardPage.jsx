@@ -197,19 +197,16 @@ function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
 }
 
 export default function DashboardPage() {
-  const { reports, loading, error, refetch } = useReports(/* statusFilter, typeFilter can be added */);
   const [statusFilter, setStatus] = useState("all");
   const [typeFilter, setType] = useState("all");
+
+  const { reports, loading, error, refetch } = useReports(statusFilter, typeFilter);
+
   const [userLocation, setUserLocation] = useState(null);
-  const [viewState, setViewState] = useState({
-    latitude: 43.65,
-    longitude: -79.38,
-    zoom: 13.5,
-  });
+  const [viewState, setViewState] = useState({ latitude: 43.65, longitude: -79.38, zoom: 13.5 });
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  // pagination
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE));
 
