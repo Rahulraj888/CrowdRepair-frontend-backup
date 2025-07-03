@@ -75,7 +75,7 @@ function useReports(statusFilter, typeFilter) {
       if (statusFilter !== "all") filters.status = statusFilter;
       if (typeFilter !== "all") filters.type = typeFilter;
       const all = await getReports(filters);
-      setReports(all.filter((r) => r.user !== user?._id));
+      setReports(all.filter((r) => r.user._id !== user?._id));
     } catch (err) {
       setError(err);
     } finally {
@@ -299,35 +299,49 @@ export default function DashboardPage() {
       )}
 
       <Row className={`mb-3 ${styles.filterRow}`}>
-        <Col xs={12} sm={6}>
-          <Dropdown onSelect={setStatus} className="w-100">
-            <Dropdown.Toggle className="w-100">
-              {statusFilter}
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown
+            onSelect={(s) => setStatus(s)}
+            className="w-100"
+          >
+            <Dropdown.Toggle variant="light" className="w-100 text-start border">
+              {statusFilter ==="all"?"Filter By Status":statusFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              {["all", "Pending", "In Progress", "Fixed", "Rejected"].map(
-                (s) => (
-                  <Dropdown.Item eventKey={s} key={s}>
-                    {s}
-                  </Dropdown.Item>
-                )
-              )}
+              {[
+                "all",
+                "Pending",
+                "In Progress",
+                "Fixed",
+                "Rejected",
+              ].map((s) => (
+                <Dropdown.Item eventKey={s} key={s}>
+                  {s}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
-        <Col xs={12} sm={6}>
-          <Dropdown onSelect={setType} className="w-100">
-            <Dropdown.Toggle className="w-100">
-              {typeFilter}
+        <Col xs={12} sm={6} className="d-flex">
+          <Dropdown
+            onSelect={(t) => setType(t)}
+            className="w-100"
+          >
+            <Dropdown.Toggle  variant="light" className="w-100 text-start border">
+              {typeFilter==="all"?"Filter By Type":typeFilter}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              {["all", "Pothole", "Streetlight", "Graffiti", "Other"].map(
-                (t) => (
-                  <Dropdown.Item eventKey={t} key={t}>
-                    {t}
-                  </Dropdown.Item>
-                )
-              )}
+              {[
+                "all",
+                "Pothole",
+                "Streetlight",
+                "Graffiti",
+                "Other",
+              ].map((t) => (
+                <Dropdown.Item eventKey={t} key={t}>
+                  {t}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         </Col>
