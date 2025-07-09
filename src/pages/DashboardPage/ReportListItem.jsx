@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Button, Image, ListGroup } from "react-bootstrap";
 import ReportDetailModal from "../../components/ReportDetailModal";
+import { haversineDistance } from "../../utils/haversine";
+import { timeAgo } from "../../utils/timeAgo";
 
 const BACKEND = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -9,25 +11,6 @@ const STATUS_COLORS = {
   "In Progress": "#3498db",
   Fixed: "#2ecc71",
 };
-
-function haversineDistance(lat1, lon1, lat2, lon2) {
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr);
-  const hrs = Math.floor(diff / (1000 * 60 * 60));
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
-}
 
 export default function ReportListItem({ report, onUpvote, onAddComment, userLocation }) {
   const [showDetail, setShowDetail] = useState(false);
