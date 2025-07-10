@@ -33,7 +33,10 @@ export async function updateReport(id, formData) {
 // Upvote a report
 export async function upvoteReport(reportId) {
   const { data } = await api.post(`/reports/${reportId}/upvote`);
-  return data.upvotes;
+  return {
+    count: data.upvotes,
+    upvoted: data.upvoted
+  };
 }
 
 // Get comments for a report

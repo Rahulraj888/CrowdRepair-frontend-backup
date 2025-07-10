@@ -75,7 +75,7 @@ export default function ReportListItem({ report, onUpvote, onAddComment, userLoc
             View Details
           </Button>
           <Button variant="link" size="sm" onClick={() => onUpvote(report._id)}>
-            👍 {report.upvoteCount || 0}
+            {report.hasUpvoted ? "👍" : "👍🏻"} {report.upvoteCount || 0}
           </Button>
           <Button variant="link" size="sm" onClick={() => setShowDetail(true)}>
             💬 {report.commentCount || 0}
