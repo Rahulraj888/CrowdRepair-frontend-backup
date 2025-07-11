@@ -6,9 +6,11 @@ export function getAdminDashboard() {
 }
 
 // List reports
-export function listReports({ status, type, page, limit }) {
+export function listReports({ status, type, page, limit, sortBy, sortOrder }) {
   return api
-    .get('/admin/reports', { params: { status, type, page, limit } })
+    .get('/admin/reports', {
+      params: { status, type, page, limit, sortBy, sortOrder }
+    })
     .then(res => res.data);
 }
 

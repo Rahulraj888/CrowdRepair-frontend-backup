@@ -19,13 +19,13 @@ export default function HeatmapPage() {
       try {
         const geojson = await getHeatmap();
 
-        // 1) add the GeoJSON source
+        // add the GeoJSON source
         map.addSource('heatmapData', {
           type: 'geojson',
           data: geojson
         });
 
-        // 2) heatmap layer (visible up to zoom 15)
+        // heatmap layer (visible up to zoom 15)
         map.addLayer({
           id: 'heatmap-layer',
           type: 'heatmap',
@@ -39,7 +39,7 @@ export default function HeatmapPage() {
           }
         });
 
-        // 3) circle layer for individual points at high zoom
+        // circle layer for individual points at high zoom
         map.addLayer({
           id: 'point-layer',
           type: 'circle',
@@ -53,7 +53,7 @@ export default function HeatmapPage() {
           }
         });
 
-        // 4) if there’s data, zoom to fit it
+        // if there’s data, zoom to fit it
         if (geojson.features.length) {
           // collect all coordinates (both polygons and points)
           const coords = geojson.features.flatMap(f => {
