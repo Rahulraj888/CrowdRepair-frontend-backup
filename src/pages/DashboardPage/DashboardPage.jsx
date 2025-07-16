@@ -43,8 +43,18 @@ export default function DashboardPage() {
   const sorted = useMemo(() => {
     if (!userLocation) return reports;
     return [...reports].sort((a, b) =>
-      haversineDistance(userLocation.latitude, userLocation.longitude, a.location.coordinates[1], a.location.coordinates[0]) -
-      haversineDistance(userLocation.latitude, userLocation.longitude, b.location.coordinates[1], b.location.coordinates[0])
+      haversineDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        a.location.coordinates[1],
+        a.location.coordinates[0]
+      ) -
+      haversineDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        b.location.coordinates[1],
+        b.location.coordinates[0]
+      )
     );
   }, [reports, userLocation]);
 
@@ -55,20 +65,30 @@ export default function DashboardPage() {
   const avgRes = useMemo(() => {
     const done = reports.filter((r) => r.status === "Fixed" && r.updatedAt);
     if (!done.length) return 0;
-    const days = done.reduce((sum, r) =>
-      sum + (new Date(r.updatedAt) - new Date(r.createdAt)) / (1000 * 60 * 60 * 24), 0) / done.length;
+    const days =
+      done.reduce(
+        (sum, r) =>
+          sum + (new Date(r.updatedAt) - new Date(r.createdAt)) / (1000 * 60 * 60 * 24),
+        0
+      ) / done.length;
     return days.toFixed(1);
   }, [reports]);
 
-  const handleUpvote = useCallback(async (id) => {
-    await upvoteReport(id);
-    refetch();
-  }, [refetch]);
+  const handleUpvote = useCallback(
+    async (id) => {
+      await upvoteReport(id);
+      refetch();
+    },
+    [refetch]
+  );
 
-  const handleAddComment = useCallback(async (id, text) => {
-    await addComment(id, text);
-    refetch();
-  }, [refetch]);
+  const handleAddComment = useCallback(
+    async (id, text) => {
+      await addComment(id, text);
+      refetch();
+    },
+    [refetch]
+  );
 
   const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE));
 
@@ -77,14 +97,18 @@ export default function DashboardPage() {
       <h2>Dashboard</h2>
       {(loading || error) && (
         <Alert variant={error ? "danger" : "info"}>
-          {error ? "Failed to load" : "Loading reports..."}
+          {error ? "Failed to load reports." : "Loading reports..."}
         </Alert>
       )}
 
       {/* Filters */}
       <Row className={`mb-3 ${styles.filterRow}`}>
         <Col sm={6}>
-          <select className="form-select" value={statusFilter} onChange={e => setStatus(e.target.value)}>
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatus(e.target.value)}
+          >
             <option value="all">Filter by Status</option>
             <option>Pending</option>
             <option>In Progress</option>
@@ -92,7 +116,11 @@ export default function DashboardPage() {
           </select>
         </Col>
         <Col sm={6}>
-          <select className="form-select" value={typeFilter} onChange={e => setType(e.target.value)}>
+          <select
+            className="form-select"
+            value={typeFilter}
+            onChange={(e) => setType(e.target.value)}
+          >
             <option value="all">Filter by Type</option>
             <option>Pothole</option>
             <option>Streetlight</option>
@@ -113,18 +141,36 @@ export default function DashboardPage() {
               onMove={(e) => setViewState(e.viewState)}
             >
               {userLocation && (
-                <Marker longitude={userLocation.longitude} latitude={userLocation.latitude} anchor="bottom">
-                  <div className="bg-primary rounded-circle" style={{ width: 12, height: 12 }} />
+                <Marker
+                  longitude={userLocation.longitude}
+                  latitude={userLocation.latitude}
+                  anchor="bottom"
+                >
+                  <div
+                    className="bg-primary rounded-circle"
+                    style={{ width: 12, height: 12 }}
+                  />
                 </Marker>
               )}
               {paginated.map((r) => (
-                <Marker key={r._id} longitude={r.location.coordinates[0]} latitude={r.location.coordinates[1]} anchor="bottom">
-                  <div style={{ cursor: "pointer" }} onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedReport(r);
-                    setShowDetail(true);
-                  }}>
-                    <FaMapMarkerAlt size={34} color={STATUS_COLORS[r.status] || "gray"} />
+                <Marker
+                  key={r._id}
+                  longitude={r.location.coordinates[0]}
+                  latitude={r.location.coordinates[1]}
+                  anchor="bottom"
+                >
+                  <div
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedReport(r);
+                      setShowDetail(true);
+                    }}
+                  >
+                    <FaMapMarkerAlt
+                      size={34}
+                      color={STATUS_COLORS[r.status] || "gray"}
+                    />
                   </div>
                 </Marker>
               ))}
@@ -137,28 +183,56 @@ export default function DashboardPage() {
 
         <Col lg={4}>
           <h5>Recent Reports</h5>
-          <ListGroup variant="flush">
-            {paginated.map((r) => (
-              <ReportListItem
-                key={r._id}
-                report={r}
-                userLocation={userLocation}
-                onUpvote={handleUpvote}
-                onAddComment={handleAddComment}
-              />
-            ))}
-          </ListGroup>
-          <div className="d-flex justify-content-center mt-3">
-            <Pagination size="sm">
-              <Pagination.First disabled={page === 1} onClick={() => setPage(1)} />
-              <Pagination.Prev disabled={page === 1} onClick={() => setPage(p => p - 1)} />
-              {Array.from({ length: totalPages }, (_, idx) => (
-                <Pagination.Item key={idx} active={idx + 1 === page} onClick={() => setPage(idx + 1)}>{idx + 1}</Pagination.Item>
-              ))}
-              <Pagination.Next disabled={page === totalPages} onClick={() => setPage(p => p + 1)} />
-              <Pagination.Last disabled={page === totalPages} onClick={() => setPage(totalPages)} />
-            </Pagination>
-          </div>
+
+          {total === 0 && !loading && !error ? (
+            <Alert variant="info">No reports to show.</Alert>
+          ) : (
+            <>
+              <ListGroup variant="flush">
+                {paginated.map((r) => (
+                  <ReportListItem
+                    key={r._id}
+                    report={r}
+                    userLocation={userLocation}
+                    onUpvote={handleUpvote}
+                    onAddComment={handleAddComment}
+                  />
+                ))}
+              </ListGroup>
+
+              {total > PAGE_SIZE && (
+                <div className="d-flex justify-content-center mt-3">
+                  <Pagination size="sm">
+                    <Pagination.First
+                      disabled={page === 1}
+                      onClick={() => setPage(1)}
+                    />
+                    <Pagination.Prev
+                      disabled={page === 1}
+                      onClick={() => setPage((p) => p - 1)}
+                    />
+                    {Array.from({ length: totalPages }, (_, idx) => (
+                      <Pagination.Item
+                        key={idx}
+                        active={idx + 1 === page}
+                        onClick={() => setPage(idx + 1)}
+                      >
+                        {idx + 1}
+                      </Pagination.Item>
+                    ))}
+                    <Pagination.Next
+                      disabled={page === totalPages}
+                      onClick={() => setPage((p) => p + 1)}
+                    />
+                    <Pagination.Last
+                      disabled={page === totalPages}
+                      onClick={() => setPage(totalPages)}
+                    />
+                  </Pagination>
+                </div>
+              )}
+            </>
+          )}
         </Col>
       </Row>
 
@@ -166,8 +240,10 @@ export default function DashboardPage() {
         report={selectedReport}
         show={showDetail}
         onHide={() => setShowDetail(false)}
-        onUpvote={() => handleUpvote(selectedReport._id)}
-        onAddComment={(text) => handleAddComment(selectedReport._id, text)}
+        onUpvote={() => handleUpvote(selectedReport?._id)}
+        onAddComment={(text) =>
+          selectedReport && handleAddComment(selectedReport._id, text)
+        }
         userLocation={userLocation}
         BACKEND={import.meta.env.VITE_API_URL || "http://localhost:5000"}
         MAPBOX_TOKEN={MAPBOX_TOKEN}

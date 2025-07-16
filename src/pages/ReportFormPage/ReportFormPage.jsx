@@ -112,8 +112,6 @@ const getAddressFromCoordinates = async (lat, lng) => {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
   }, [previews]);
 
-
-
   const handleImageChange = (e) => {
   const files = Array.from(e.target.files);
   const MAX_FILES = 5;
