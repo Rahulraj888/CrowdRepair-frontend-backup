@@ -115,6 +115,7 @@ export default function ReportListItem({ report, onUpvote, onAddComment, userLoc
         userLocation={userLocation}
         BACKEND={BACKEND}
         MAPBOX_TOKEN={MAPBOX_TOKEN}
+        disableComments={isAdmin}
       />
     </>
   );

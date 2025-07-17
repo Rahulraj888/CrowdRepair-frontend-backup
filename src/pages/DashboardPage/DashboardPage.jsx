@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useContext } from "react";
 import { Container, Row, Col, Alert, Card, Pagination, ListGroup } from "react-bootstrap";
 import Map, { Marker } from "react-map-gl";
 import { FaMapMarkerAlt } from "react-icons/fa";
 import styles from "./Dashboard.module.css";
+import { AuthContext } from "../../context/AuthContext";
 
 import useReports from "./useReports";
 import { haversineDistance } from "../../utils/haversine";
@@ -30,6 +31,8 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1);
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+  const { user } = useContext(AuthContext);
+  const isUser = user?.role !== 'admin';  // adjust if your user object uses a different flag
 
   useEffect(() => setPage(1), [statusFilter, typeFilter]);
 
@@ -235,7 +238,7 @@ export default function DashboardPage() {
           )}
         </Col>
       </Row>
-
+      
       <ReportDetailModal
         report={selectedReport}
         show={showDetail}
@@ -247,6 +250,7 @@ export default function DashboardPage() {
         userLocation={userLocation}
         BACKEND={import.meta.env.VITE_API_URL || "http://localhost:5000"}
         MAPBOX_TOKEN={MAPBOX_TOKEN}
+        disableComments = {!isUser}
       />
     </Container>
   );
